@@ -57,6 +57,9 @@ def flatten_table(row_data, name="data", parent="", parent_idx=0, lens={}, files
             elif isinstance(v, bytes):
                 tables[name][-1][k] = get_filename(len(files)+files_len, base_path=base_path, extension=extension, depth=file_depth)
                 files[tables[name][-1][k]] = v
+            elif isinstance(v, np.ndarray) and len(v.shape) == 2:
+                tables[name][-1][k] = get_filename(len(files)+files_len, base_path=base_path, extension=extension, depth=file_depth)
+                files[tables[name][-1][k]] = v
             else:
                 tables[name][-1][k] = v
     return tables, files
@@ -78,8 +81,14 @@ def save_homogenous_data(data, path):
     for k, v in files.items():
         fpath = os.path.join(path, k)
         os.makedirs(os.path.dirname(fpath), exist_ok=True)
-        with open(fpath, 'wb') as f:
-            f.write(v)   
+        if isinstance(v, bytes):
+            with open(fpath, 'wb') as f:
+                f.write(v)   
+        elif isinstance(v, np.ndarray) and len(v.shape) == 2:
+            im = Image.fromarray(v)
+            im.save(fpath, format='png')
+        else:
+            raise ValueError(f'Unrecognized type for saving files "{type(v)}"')
             
 
 def load_data_and_images(path):
