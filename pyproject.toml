@@ -6,7 +6,7 @@ authors = [
 ]
 description = "Sharing useful python functions for accelerator physics with the public"
 readme = "README.md"
-requires-python = ">=3.7"
+requires-python = ">=3.8"
 license = {file = "LICENSE.txt"}
 classifiers = [
     "Programming Language :: Python :: 3",
@@ -17,6 +17,7 @@ dependencies = [
   "numpy",
   "pillow",
 ]
+
 [project.optional-dependencies]
 tests = [
   'pytest',
