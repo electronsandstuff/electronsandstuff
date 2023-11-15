@@ -17,3 +17,7 @@ dependencies = [
   "numpy",
   "pillow",
 ]
+[project.optional-dependencies]
+tests = [
+  'pytest',
+]
