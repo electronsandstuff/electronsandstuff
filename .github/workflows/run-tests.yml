@@ -15,13 +15,13 @@ jobs:
         python-version: ["3.8", "3.9", "3.10", "3.11"]
     steps:
     - uses: actions/checkout@v3
-    - name: Setup conda
-      uses: conda-incubator/setup-miniconda@v2
+    - name: Setup python
+      uses: actions/setup-python@v4
       with:
-        auto-update-conda: true
-        python-version: ${{ matrix.python-version }}
+        python-version: ${{ matrix.version }}
     - name: Install package and dependencies
       run: |
+        pip install --upgrade pip
         pip install .[tests]
     - name: Run pytest
       run: |
