@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-import os
+import os, ntpath
 from PIL import Image
 
 
@@ -93,7 +93,8 @@ def save_homogenous_data(data, path):
 
 def load_data_and_images(path):
     """
-    Loads all tables and image files from the data stored at path
+    Loads all tables and image files from the data stored at path. Note, path will have unix 
+    separator regardless of OS.
 
     Args:
         path (str): path to the directory of data
@@ -110,7 +111,7 @@ def load_data_and_images(path):
             for root, _, fs in os.walk(os.path.join(path, p)):
                 for f in fs:
                     if f[0] != '.':
-                        files[os.path.relpath(os.path.join(root, f), path)] = np.asarray(Image.open(os.path.join(root, f)))
+                        files[os.path.relpath(os.path.join(root, f), path).replace(os.sep,ntpath.sep)] = np.asarray(Image.open(os.path.join(root, f)))
     return tables, files
 
 
