@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-import os, ntpath
+import os, posixpath
 from PIL import Image
 
 
@@ -111,7 +111,7 @@ def load_data_and_images(path):
             for root, _, fs in os.walk(os.path.join(path, p)):
                 for f in fs:
                     if f[0] != '.':
-                        files[os.path.relpath(os.path.join(root, f), path).replace(os.sep,ntpath.sep)] = np.asarray(Image.open(os.path.join(root, f)))
+                        files[os.path.relpath(os.path.join(root, f), path).replace(os.sep,posixpath.sep)] = np.asarray(Image.open(os.path.join(root, f)))
     return tables, files
 
 
