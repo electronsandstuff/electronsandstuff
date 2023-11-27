@@ -1,1 +1,1 @@
-from .file_interfaces import load_data_and_images, pixel_coords_from_bbox, pixel_coords_from_row, flatten_table, save_homogenous_data
+from .file_interfaces import load_data_and_images, pixel_coords_from_bbox, pixel_coords_from_row, flatten_table, save_homogenous_data, make_density_animation, get_density_series_bounding_box
