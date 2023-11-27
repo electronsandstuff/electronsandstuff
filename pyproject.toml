@@ -1,6 +1,6 @@
 [project]
 name = "accelerator_utils"
-version = "0.0.2"
+version = "0.0.3"
 authors = [
   { name="Christopher M. Pierce", email="contact@chris-pierce.com" },
 ]
@@ -16,6 +16,8 @@ dependencies = [
   "pandas",
   "numpy",
   "pillow",
+  "scipy",
+  "matplotlib",
 ]
 
 [project.optional-dependencies]
