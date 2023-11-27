@@ -1,6 +1,7 @@
 name: Run python tests
 
 on:
+  pull_request:
   workflow_dispatch:
   push:
 
