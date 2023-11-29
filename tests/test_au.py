@@ -1,4 +1,4 @@
-import accelerator_utils as au
+import accelerator_utils.file_interfaces as fi
 import numpy as np
 import tempfile, os
 
@@ -26,7 +26,7 @@ def test_pixel_coords():
         )
         
         # Generate the grid of points
-        X, Y = au.pixel_coords_from_bbox(upper_left, lower_left, lower_right, (32, 32))
+        X, Y = fi.pixel_coords_from_bbox(upper_left, lower_left, lower_right, (32, 32))
         
         # Check the boundaries
         np.testing.assert_allclose((X[0, 0], Y[0, 0]), lower_left)
@@ -65,10 +65,10 @@ def test_save_load_homogenous_data():
     with tempfile.TemporaryDirectory() as dir:
         # Save it to disk
         path = os.path.join(dir, 'test')
-        au.save_homogenous_data(test_data, path)
+        fi.save_homogenous_data(test_data, path)
         
         # Load it back
-        data, images = au.load_data_and_images(path)
+        data, images = fi.load_data_and_images(path)
         
         # Run some basic checks
         assert data.keys() == {'data', 'children'}  # All tables are here
