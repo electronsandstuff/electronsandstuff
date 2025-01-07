@@ -1,0 +1,17 @@
+name: electronsandstuff
+channels:
+  - conda-forge
+dependencies:
+  - jupyter
+  - matplotlib
+  - numpy
+  - pandas
+  - pip
+  - pre-commit
+  - pydantic
+  - pytest
+  - python=3.11
+  - scipy
+  - xopt
+  - pip:
+    - paretobench
