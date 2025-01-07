@@ -1,4 +1,4 @@
-import accelerator_utils.file_interfaces as fi
+import electronsandstuff.file_interfaces as fi
 import numpy as np
 import tempfile, os
 

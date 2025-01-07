@@ -1,12 +1,12 @@
 [project]
-name = "accelerator_utils"
+name = "electronsandstuff"
 version = "0.0.4"
 authors = [
   { name="Christopher M. Pierce", email="contact@chris-pierce.com" },
 ]
-description = "Sharing useful python functions for accelerator physics with the public"
+description = "A mono-repo for miscellaneous publicly released code"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 license = {file = "LICENSE.txt"}
 classifiers = [
     "Programming Language :: Python :: 3",
