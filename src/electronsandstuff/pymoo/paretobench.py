@@ -1,6 +1,5 @@
 from pymoo.core.problem import Problem as PymooProblem
 from paretobench import Problem
-import numpy as np
 
 
 class PyMooWrapper(PymooProblem):
@@ -14,14 +13,14 @@ class PyMooWrapper(PymooProblem):
             A problem object that follows the Problem class interface.
         """
         self.prob = problem
-        
+
         super().__init__(
             n_var=self.prob.n_vars,
             n_obj=self.prob.n_objs,
             n_ieq_constr=self.prob.n_constraints,
             xl=self.prob.var_lower_bounds,
             xu=self.prob.var_upper_bounds,
-            vtype=float
+            vtype=float,
         )
 
     def _evaluate(self, X, out, *args, **kwargs):
