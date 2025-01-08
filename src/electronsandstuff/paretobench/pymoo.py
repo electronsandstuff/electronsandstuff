@@ -5,7 +5,7 @@ from paretobench import Problem
 class PymooProblemWrapper(PymooProblem):
     def __init__(self, problem: Problem):
         """
-        Initialize the PyMooWrapper with a given problem object.
+        Initialize the pymoo wrapper with a given problem object.
 
         Parameters
         ----------
