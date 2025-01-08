@@ -18,9 +18,11 @@ dependencies = [
   "pillow",
   "scipy",
   "matplotlib",
+  "paretobench",
 ]
 
 [project.optional-dependencies]
 tests = [
-  'pytest',
+  "pytest",
+  "xopt",
 ]
