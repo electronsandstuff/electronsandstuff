@@ -1,6 +1,17 @@
-from xopt import VOCS
+from datetime import datetime
+from functools import partial
+from paretobench import Problem, Population, History
+from typing import Union, Optional
+from xopt import VOCS, Xopt
+import logging
 import numpy as np
-from paretobench import Problem
+import os
+import pandas as pd
+import re
+import time
+
+
+logger = logging.getLogger(__name__)
 
 
 class XoptProblemWrapper:
@@ -80,3 +91,156 @@ class XoptProblemWrapper:
 
     def __repr__(self):
         return f"XoptProblemWrapper({self.prob.to_line_fmt()})"
+
+
+def import_cnsga_population(
+    path: Union[str, os.PathLike[str]], vocs: VOCS, errors_as_constraints: bool = False
+):
+    """
+    Import a population file from Xopt's CNSGA geneator into a ParetoBench Population object.
+
+    Parameters
+    ----------
+    path : Union[str, os.PathLike[str]]
+        Path to the CSV file containing the population data.
+    vocs : VOCS
+        VOCS object defining the variables, objectives, and constraints.
+    errors_as_constraints : bool, optional
+        If True, imports the 'xopt_error' column as an additional constraint,
+        where True maps to -1 (violated) and False maps to +1 (satisfied), by default False.
+
+    Returns
+    -------
+    Population
+        Population object with the loaded data
+    """
+    df = pd.read_csv(path)
+
+    # Get base constraints if they exist
+    g = -vocs.constraint_data(df).to_numpy() if vocs.constraints else None
+    names_g = vocs.constraint_names
+
+    # Handle error column if requested
+    if errors_as_constraints:
+        # Convert boolean strings to +/-1, reshape to 2D array
+        error_constraints = np.where(
+            df["xopt_error"].astype(str).str.lower() == "true", -1.0, 1.0
+        )[:, np.newaxis]
+
+        # Combine with existing constraints if present
+        if g is not None:
+            g = np.hstack([g, error_constraints])
+        else:
+            g = error_constraints
+        names_g.append("xopt_error")
+
+    return Population(
+        x=vocs.variable_data(df).to_numpy(),
+        f=vocs.objective_data(df).to_numpy(),
+        g=g,
+        names_x=vocs.variable_names,
+        names_f=vocs.objective_names,
+        names_g=names_g,
+    )
+
+
+def import_cnsga_history(
+    output_path: Union[str, os.PathLike[str]],
+    vocs: Optional[VOCS] = None,
+    config_file: Union[None, str, os.PathLike[str]] = None,
+    problem: str = "",
+    errors_as_constraints: bool = False,
+):
+    """
+    Import all population files in output_path from Xopt's CNSGA generator
+    into a ParetoBench History object.
+
+    Parameters
+    ----------
+    output_path : Union[str, os.PathLike[str]]
+        Directory containing the CNSGA population CSV files.
+    vocs : Optional[VOCS], optional
+        VOCS object defining the variables, objectives, and constraints.
+        If None, must provide config_file, by default None.
+    config_file : Union[None, str, os.PathLike[str]], optional
+        Path to YAML config file containing VOCS definition.
+        If None, must provide VOCS object, by default None.
+    problem : str, optional
+        Name of the optimization problem, by default "".
+    errors_as_constraints : bool, optional
+        If True, imports the 'xopt_error' column as an additional constraint
+        for each population, by default False.
+
+    Returns
+    -------
+    History
+        History object containing the population data
+
+    Notes
+    -----
+    Population files must be named following the pattern:
+    'cnsga_population_YYYY-MM-DDThh:mm:ss.ffffff+ZZ:ZZ.csv'
+    or 'cnsga_population_YYYY-MM-DDThh_mm_ss.ffffff+ZZ_ZZ.csv'
+    """
+    start_t = time.perf_counter()
+    if (vocs is None) and (config_file is None):
+        raise ValueError("Must specify one of vocs or config_file")
+
+    # Get vocs from config file
+    if vocs is None:
+        xx = Xopt.from_yaml(config_file)
+        vocs = xx.vocs
+
+    # Get list of population files and their datetimes
+    population_files = []
+    population_datetimes = []
+
+    # Regex pattern to match both datetime formats
+    datetime_pattern = r"cnsga_population_(\d{4}-\d{2}-\d{2}T\d{2}[_:]\d{2}[_:]\d{2}\.\d+[-+]\d{2}[_:]\d{2})\.csv"
+
+    # Walk through all files in directory
+    for filename in os.listdir(output_path):
+        match = re.match(datetime_pattern, filename)
+        if match:
+            # Get datetime string and convert _ to : if needed
+            dt_str = match.group(1).replace("_", ":")
+
+            # Parse datetime string
+            dt = datetime.fromisoformat(dt_str)
+
+            # Store filename and datetime
+            population_files.append(filename)
+            population_datetimes.append(dt)
+
+    # Sort based on datetime
+    population_files = [
+        os.path.join(output_path, x)
+        for _, x in sorted(zip(population_datetimes, population_files))
+    ]
+    logger.info(
+        f'Detected {len(population_files)} population files out of {len(os.listdir(output_path))} total files at "{output_path}"'
+    )
+
+    # Import files as populations
+    pops = list(
+        map(
+            partial(
+                import_cnsga_population,
+                vocs=vocs,
+                errors_as_constraints=errors_as_constraints,
+            ),
+            population_files,
+        )
+    )
+
+    # Update fevals
+    fevals = 0
+    for pop in pops:
+        fevals += len(pop)
+        pop.fevals = fevals
+
+    hist = History(reports=pops, problem=problem)
+    logger.info(
+        f"Successfully loaded History object in {time.perf_counter()-start_t:.2f}s: {hist}"
+    )
+    return hist
