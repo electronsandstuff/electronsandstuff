@@ -1,7 +1,7 @@
-from .pymoo import PyMooWrapper
+from .pymoo import PymooProblemWrapper
 from .xopt import XoptProblemWrapper
 
 __all__ = (
-    "PyMooWrapper",
+    "PymooProblemWrapper",
     "XoptProblemWrapper",
 )

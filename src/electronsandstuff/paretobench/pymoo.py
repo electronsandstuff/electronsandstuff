@@ -2,7 +2,7 @@ from pymoo.core.problem import Problem as PymooProblem
 from paretobench import Problem
 
 
-class PyMooWrapper(PymooProblem):
+class PymooProblemWrapper(PymooProblem):
     def __init__(self, problem: Problem):
         """
         Initialize the PyMooWrapper with a given problem object.
