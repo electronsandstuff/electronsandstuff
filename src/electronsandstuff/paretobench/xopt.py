@@ -3,10 +3,15 @@ from functools import partial
 from paretobench import Problem, Population, History
 from typing import Union, Optional
 from xopt import VOCS, Xopt
+import logging
 import numpy as np
 import os
 import pandas as pd
 import re
+import time
+
+
+logger = logging.getLogger(__name__)
 
 
 class XoptProblemWrapper:
@@ -177,6 +182,7 @@ def import_cnsga_history(
     'cnsga_population_YYYY-MM-DDThh:mm:ss.ffffff+ZZ:ZZ.csv'
     or 'cnsga_population_YYYY-MM-DDThh_mm_ss.ffffff+ZZ_ZZ.csv'
     """
+    start_t = time.perf_counter()
     if (vocs is None) and (config_file is None):
         raise ValueError("Must specify one of vocs or config_file")
 
@@ -211,6 +217,9 @@ def import_cnsga_history(
         os.path.join(output_path, x)
         for _, x in sorted(zip(population_datetimes, population_files))
     ]
+    logging.info(
+        f'Detected {len(population_files)} population files out of {len(os.listdir(output_path))} total files at "{output_path}"'
+    )
 
     # Import files as populations
     pops = list(
@@ -230,4 +239,8 @@ def import_cnsga_history(
         fevals += len(pop)
         pop.fevals = fevals
 
-    return History(reports=pops, problem=problem)
+    hist = History(reports=pops, problem=problem)
+    logging.info(
+        f"Successfully loaded History object in {time.perf_counter()-start_t:.2f}s: {hist}"
+    )
+    return hist
