@@ -4,13 +4,15 @@ from xopt import Xopt, Evaluator
 from xopt.generators.ga.cnsga import CNSGAGenerator
 import tempfile
 import numpy as np
+import pytest
 
 from electronsandstuff.paretobench.xopt import import_cnsga_history
 
 
-def test_cnsga_importer(n_generations=50, population_size=50):
+@pytest.mark.parametrize("prob_name", ["WFG1", "CF1"])
+def test_cnsga_importer(prob_name, n_generations=50, population_size=50):
     # Our test problem
-    prob = XoptProblemWrapper(Problem.from_line_fmt("WFG1 (n=16, k=2, m=2)"))
+    prob = XoptProblemWrapper(Problem.from_line_fmt(prob_name))
 
     # A place to store the output file
     with tempfile.TemporaryDirectory() as dir:
