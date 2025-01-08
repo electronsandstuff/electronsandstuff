@@ -91,6 +91,24 @@ class XoptProblemWrapper:
 def import_cnsga_population(
     path: Union[str, os.PathLike[str]], vocs: VOCS, errors_as_constraints: bool = False
 ):
+    """
+    Import a population file from Xopt's CNSGA geneator into a ParetoBench Population object.
+
+    Parameters
+    ----------
+    path : Union[str, os.PathLike[str]]
+        Path to the CSV file containing the population data.
+    vocs : VOCS
+        VOCS object defining the variables, objectives, and constraints.
+    errors_as_constraints : bool, optional
+        If True, imports the 'xopt_error' column as an additional constraint,
+        where True maps to -1 (violated) and False maps to +1 (satisfied), by default False.
+
+    Returns
+    -------
+    Population
+        Population object with the loaded data
+    """
     df = pd.read_csv(path)
 
     # Get base constraints if they exist
@@ -129,6 +147,37 @@ def import_cnsga_history(
     problem: str = "",
     errors_as_constraints: bool = False,
 ):
+    """
+    Import all population files in output_path from Xopt's CNSGA generator
+    into a ParetoBench History object.
+
+    Parameters
+    ----------
+    output_path : Union[str, os.PathLike[str]]
+        Directory containing the CNSGA population CSV files.
+    vocs : Optional[VOCS], optional
+        VOCS object defining the variables, objectives, and constraints.
+        If None, must provide config_file, by default None.
+    config_file : Union[None, str, os.PathLike[str]], optional
+        Path to YAML config file containing VOCS definition.
+        If None, must provide VOCS object, by default None.
+    problem : str, optional
+        Name of the optimization problem, by default "".
+    errors_as_constraints : bool, optional
+        If True, imports the 'xopt_error' column as an additional constraint
+        for each population, by default False.
+
+    Returns
+    -------
+    History
+        History object containing the population data
+
+    Notes
+    -----
+    Population files must be named following the pattern:
+    'cnsga_population_YYYY-MM-DDThh:mm:ss.ffffff+ZZ:ZZ.csv'
+    or 'cnsga_population_YYYY-MM-DDThh_mm_ss.ffffff+ZZ_ZZ.csv'
+    """
     if (vocs is None) and (config_file is None):
         raise ValueError("Must specify one of vocs or config_file")
 
