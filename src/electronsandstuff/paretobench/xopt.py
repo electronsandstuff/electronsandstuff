@@ -117,10 +117,10 @@ def import_cnsga_population(
 
     # Handle error column if requested
     if errors_as_constraints:
-        # Convert boolean strings to ±1, reshape to 2D array
+        # Convert boolean strings to +/-1, reshape to 2D array
         error_constraints = np.where(
             df["xopt_error"].astype(str).str.lower() == "true", -1.0, 1.0
-        )[:, np.newaxis]  # Makes it 2D: (n_samples, 1)
+        )[:, np.newaxis]
 
         # Combine with existing constraints if present
         if g is not None:
