@@ -1,6 +1,8 @@
-from xopt import VOCS
+from xopt import VOCS, Xopt
 import numpy as np
 from paretobench import Problem
+import os
+from typing import Union, Optional
 
 
 class XoptProblemWrapper:
@@ -80,3 +82,17 @@ class XoptProblemWrapper:
 
     def __repr__(self):
         return f"XoptProblemWrapper({self.prob.to_line_fmt()})"
+
+
+def import_cnsga_history(
+    output_path: Union[str, os.PathLike[str]],
+    vocs: Optional[VOCS] = None,
+    config_file: Union[None, str, os.PathLike[str]] = None,
+):
+    if (vocs is None) and (config_file is None):
+        raise ValueError("Must specify one of vocs or config_file")
+
+    # Get vocs from config file
+    if vocs is None:
+        xx = Xopt.from_yaml(config_file)
+        vocs = xx.vocs
