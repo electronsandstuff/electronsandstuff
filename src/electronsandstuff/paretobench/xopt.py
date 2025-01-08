@@ -217,7 +217,7 @@ def import_cnsga_history(
         os.path.join(output_path, x)
         for _, x in sorted(zip(population_datetimes, population_files))
     ]
-    logging.info(
+    logger.info(
         f'Detected {len(population_files)} population files out of {len(os.listdir(output_path))} total files at "{output_path}"'
     )
 
@@ -240,7 +240,7 @@ def import_cnsga_history(
         pop.fevals = fevals
 
     hist = History(reports=pops, problem=problem)
-    logging.info(
+    logger.info(
         f"Successfully loaded History object in {time.perf_counter()-start_t:.2f}s: {hist}"
     )
     return hist
