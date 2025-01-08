@@ -1,8 +1,12 @@
+from datetime import datetime
+from functools import partial
+from paretobench import Problem, Population, History
+from typing import Union, Optional
 from xopt import VOCS, Xopt
 import numpy as np
-from paretobench import Problem
 import os
-from typing import Union, Optional
+import pandas as pd
+import re
 
 
 class XoptProblemWrapper:
@@ -84,10 +88,46 @@ class XoptProblemWrapper:
         return f"XoptProblemWrapper({self.prob.to_line_fmt()})"
 
 
+def import_cnsga_population(
+    path: Union[str, os.PathLike[str]], vocs: VOCS, errors_as_constraints: bool = False
+):
+    df = pd.read_csv(path)
+
+    # Get base constraints if they exist
+    g = -vocs.constraint_data(df).to_numpy() if vocs.constraints else None
+    names_g = vocs.constraint_names.copy() if vocs.constraints else []
+
+    # Handle error column if requested
+    if errors_as_constraints:
+        # Convert boolean strings to ±1, reshape to 2D array
+        error_constraints = np.where(
+            df["xopt_error"].astype(str).str.lower() == "true", -1.0, 1.0
+        )[:, np.newaxis]  # Makes it 2D: (n_samples, 1)
+
+        # Combine with existing constraints if present
+        if g is not None:
+            g = np.hstack([g, error_constraints])
+            names_g.append("xopt_error")
+        else:
+            g = error_constraints
+            names_g = ["xopt_error"]
+
+    return Population(
+        x=vocs.variable_data(df).to_numpy(),
+        f=vocs.objective_data(df).to_numpy(),
+        g=g,
+        names_x=vocs.variable_names,
+        names_f=vocs.objective_names,
+        names_g=names_g,
+    )
+
+
 def import_cnsga_history(
     output_path: Union[str, os.PathLike[str]],
     vocs: Optional[VOCS] = None,
     config_file: Union[None, str, os.PathLike[str]] = None,
+    problem: str = "",
+    errors_as_constraints: bool = False,
 ):
     if (vocs is None) and (config_file is None):
         raise ValueError("Must specify one of vocs or config_file")
@@ -96,3 +136,55 @@ def import_cnsga_history(
     if vocs is None:
         xx = Xopt.from_yaml(config_file)
         vocs = xx.vocs
+
+    # Get list of population files and their datetimes
+    population_files = []
+    population_datetimes = []
+
+    # Regex pattern to match both datetime formats
+    datetime_pattern = r"cnsga_population_(\d{4}-\d{2}-\d{2}T\d{2}[_:]\d{2}[_:]\d{2}\.\d+[-+]\d{2}[_:]\d{2})\.csv"
+
+    # Walk through all files in directory
+    for filename in os.listdir(output_path):
+        match = re.match(datetime_pattern, filename)
+        if match:
+            # Get datetime string and convert _ to : if needed
+            dt_str = match.group(1).replace("_", ":")
+
+            try:
+                # Parse datetime string
+                dt = datetime.fromisoformat(dt_str)
+
+                # Store filename and datetime
+                population_files.append(filename)
+                population_datetimes.append(dt)
+            except ValueError as e:
+                print(
+                    f"Warning: Could not parse datetime from filename {filename}: {e}"
+                )
+
+    # Sort both lists based on datetime
+    population_files = [
+        os.path.join(output_path, x)
+        for _, x in sorted(zip(population_datetimes, population_files))
+    ]
+
+    # Import files as populations
+    pops = list(
+        map(
+            partial(
+                import_cnsga_population,
+                vocs=vocs,
+                errors_as_constraints=errors_as_constraints,
+            ),
+            population_files,
+        )
+    )
+
+    # Update fevals
+    fevals = 0
+    for pop in pops:
+        fevals += len(pop)
+        pop.fevals = fevals
+
+    return History(reports=pops, problem=problem)
