@@ -113,7 +113,7 @@ def import_cnsga_population(
 
     # Get base constraints if they exist
     g = -vocs.constraint_data(df).to_numpy() if vocs.constraints else None
-    names_g = vocs.constraint_names.copy() if vocs.constraints else []
+    names_g = vocs.constraint_names
 
     # Handle error column if requested
     if errors_as_constraints:
@@ -125,10 +125,9 @@ def import_cnsga_population(
         # Combine with existing constraints if present
         if g is not None:
             g = np.hstack([g, error_constraints])
-            names_g.append("xopt_error")
         else:
             g = error_constraints
-            names_g = ["xopt_error"]
+        names_g.append("xopt_error")
 
     return Population(
         x=vocs.variable_data(df).to_numpy(),
