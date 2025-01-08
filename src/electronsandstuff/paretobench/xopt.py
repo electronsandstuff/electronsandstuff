@@ -206,7 +206,7 @@ def import_cnsga_history(
             population_files.append(filename)
             population_datetimes.append(dt)
 
-    # Sort both lists based on datetime
+    # Sort based on datetime
     population_files = [
         os.path.join(output_path, x)
         for _, x in sorted(zip(population_datetimes, population_files))
