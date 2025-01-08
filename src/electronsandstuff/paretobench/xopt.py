@@ -199,17 +199,12 @@ def import_cnsga_history(
             # Get datetime string and convert _ to : if needed
             dt_str = match.group(1).replace("_", ":")
 
-            try:
-                # Parse datetime string
-                dt = datetime.fromisoformat(dt_str)
+            # Parse datetime string
+            dt = datetime.fromisoformat(dt_str)
 
-                # Store filename and datetime
-                population_files.append(filename)
-                population_datetimes.append(dt)
-            except ValueError as e:
-                print(
-                    f"Warning: Could not parse datetime from filename {filename}: {e}"
-                )
+            # Store filename and datetime
+            population_files.append(filename)
+            population_datetimes.append(dt)
 
     # Sort both lists based on datetime
     population_files = [
