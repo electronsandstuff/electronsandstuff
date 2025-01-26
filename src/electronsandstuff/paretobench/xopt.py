@@ -1,7 +1,7 @@
 from datetime import datetime
 from functools import partial
 from paretobench import Problem, Population, History
-from typing import Union, Optional
+from typing import Union, Optional, TextIO
 from xopt import VOCS, Xopt
 import logging
 import numpy as np
@@ -154,7 +154,7 @@ def import_cnsga_population(
 def import_cnsga_history(
     output_path: Union[str, os.PathLike[str]],
     vocs: Optional[VOCS] = None,
-    config_file: Union[None, str, os.PathLike[str]] = None,
+    config: Union[None, str, TextIO] = None,
     problem: str = "",
     errors_as_constraints: bool = False,
 ):
@@ -168,10 +168,10 @@ def import_cnsga_history(
         Directory containing the CNSGA population CSV files.
     vocs : Optional[VOCS], optional
         VOCS object defining the variables, objectives, and constraints.
-        If None, must provide config_file, by default None.
-    config_file : Union[None, str, os.PathLike[str]], optional
-        Path to YAML config file containing VOCS definition.
-        If None, must provide VOCS object, by default None.
+        If None, must provide config, by default None.
+    config : Union[None, str, os.PathLike[str]], optional
+        YAML config file or open file object with the information (passed to `Xopt.from_yaml`)
+        If None, must provide vocs, by default None.
     problem : str, optional
         Name of the optimization problem, by default "".
     errors_as_constraints : bool, optional
@@ -190,12 +190,12 @@ def import_cnsga_history(
     or 'cnsga_population_YYYY-MM-DDThh_mm_ss.ffffff+ZZ_ZZ.csv'
     """
     start_t = time.perf_counter()
-    if (vocs is None) and (config_file is None):
-        raise ValueError("Must specify one of vocs or config_file")
+    if (vocs is None) and (config is None):
+        raise ValueError("Must specify one of vocs or config")
 
     # Get vocs from config file
     if vocs is None:
-        xx = Xopt.from_yaml(config_file)
+        xx = Xopt.from_yaml(config)
         vocs = xx.vocs
 
     # Get list of population files and their datetimes
