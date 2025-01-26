@@ -120,7 +120,7 @@ def import_cnsga_population(
     g = df[vocs.constraint_names].to_numpy() if vocs.constraints else None
     names_g = vocs.constraint_names
     constraint_targets = [vocs.constraints[name][1] for name in vocs.constraint_names]
-    constraint_directions = [vocs.constraints[name][0] == "GREATER_THAN" for name in vocs.constraint_names]
+    constraint_directions = [">" if vocs.constraints[name][0] == "GREATER_THAN" else "<" for name in vocs.constraint_names]
 
     # Handle error column if requested
     if errors_as_constraints:
@@ -136,7 +136,7 @@ def import_cnsga_population(
             g = error_constraints
         names_g.append("xopt_error")
         constraint_targets.append(0.0)
-        constraint_directions.append(True)
+        constraint_directions.append(">")
 
     return Population(
         x=df[vocs.variable_names].to_numpy(),
@@ -145,8 +145,8 @@ def import_cnsga_population(
         names_x=vocs.variable_names,
         names_f=vocs.objective_names,
         names_g=names_g,
-        obj_directions=np.array([vocs.objectives[name] == "MAXIMIZE" for name in vocs.objective_names]),
-        constraint_directions=np.array(constraint_directions),
+        obj_directions="".join(["+" if vocs.objectives[name] == "MAXIMIZE" else "-" for name in vocs.objective_names]),
+        constraint_directions="".join(constraint_directions),
         constraint_targets=np.array(constraint_targets),
     )
 
