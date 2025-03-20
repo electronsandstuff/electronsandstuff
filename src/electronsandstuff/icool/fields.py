@@ -1,7 +1,7 @@
-from pydantic import BaseModel
 from typing import List, Union, Literal, Tuple
 import logging
 
+from .base import ICoolBase
 from .utils import stripped_no_comment_str
 from .substitution import to_float_or_sub, FloatOrSub, IntOrSub
 
@@ -9,7 +9,7 @@ from .substitution import to_float_or_sub, FloatOrSub, IntOrSub
 logger = logging.getLogger(__name__)
 
 
-class ICoolField(BaseModel):
+class ICoolField(ICoolBase):
     name: Literal["FIELD"] = "FIELD"
 
     @classmethod

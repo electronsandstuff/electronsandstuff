@@ -1,7 +1,8 @@
-from pydantic import BaseModel, Field
+from pydantic import Field
 from typing import List, Union, Literal, Tuple, Annotated
 import logging
 
+from .base import ICoolBase
 from .substitution import (
     FloatOrSub,
     StrOrSub,
@@ -20,7 +21,7 @@ from .utils import stripped_no_comment_str
 logger = logging.getLogger(__name__)
 
 
-class RegionCommand(BaseModel):
+class RegionCommand(ICoolBase):
     pass
 
     @classmethod
@@ -30,7 +31,7 @@ class RegionCommand(BaseModel):
         raise NotImplementedError
 
 
-class RSubRegion(BaseModel):
+class RSubRegion(ICoolBase):
     rlow: FloatOrSub
     rhigh: FloatOrSub
     field: Annotated[all_fields, Field(discriminator="name")]
@@ -89,31 +90,31 @@ class SRegion(RegionCommand):
 
 
 # Phase models for "RefP"
-class PhModRef2(BaseModel):
+class PhModRef2(ICoolBase):
     name: Literal["PHMODREF2"] = "PHMODREF2"
 
 
-class PhModRef3(BaseModel):
+class PhModRef3(ICoolBase):
     name: Literal["PHMODREF3"] = "PHMODREF3"
     pz0: FloatOrSub
     t0: FloatOrSub
 
 
-class PhModRef4(BaseModel):
+class PhModRef4(ICoolBase):
     name: Literal["PHMODREF4"] = "PHMODREF4"
     pz0: FloatOrSub
     t0: FloatOrSub
     dedz: FloatOrSub
 
 
-class PhModRef5(BaseModel):
+class PhModRef5(ICoolBase):
     name: Literal["PHMODREF5"] = "PHMODREF5"
     e0: FloatOrSub
     dedz: FloatOrSub
     d2edz2: FloatOrSub
 
 
-class PhModRef6(BaseModel):
+class PhModRef6(ICoolBase):
     name: Literal["PHMODREF6"] = "PHMODREF6"
     e0: FloatOrSub
     dedz: FloatOrSub

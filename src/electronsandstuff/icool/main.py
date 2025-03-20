@@ -1,8 +1,9 @@
-from pydantic import BaseModel, Field
-from typing import Optional, Dict
+from pydantic import Field
+from typing import Optional, Dict, Any
 import re
 import logging
 
+from .base import ICoolBase
 from .substitution import Substitution
 from .region_commands import CoolingSection
 from .utils import stripped_no_comment_str
@@ -11,7 +12,7 @@ from .utils import stripped_no_comment_str
 logger = logging.getLogger(__name__)
 
 
-class ICOOLInput(BaseModel):
+class ICOOLInput(ICoolBase):
     """Represents an ICOOL input file."""
 
     title: str = Field(default="", description="Title of the input file (max 79 chars)")
@@ -21,6 +22,28 @@ class ICOOLInput(BaseModel):
     cooling_section: Optional[CoolingSection] = Field(
         default=None, description="Cooling section between SECTION and ENDSECTION"
     )
+
+    def perform_substitutions(
+        self, substitutions: Optional[Dict[str, Any]] = None
+    ) -> "ICOOLInput":
+        """
+        Create a new object with substitutions applied to all member variables.
+
+        Args:
+            substitutions: A dictionary mapping substitution keys to their values.
+                           If None, constructs a dictionary from self.substitutions.
+
+        Returns:
+            A new instance of ICOOLInput with substitutions applied.
+        """
+        # If substitutions is None, construct it from self.substitutions
+        if substitutions is None:
+            substitutions = {}
+            for name, sub_obj in self.substitutions.items():
+                substitutions[name] = sub_obj.value
+
+        # Call the parent class's perform_substitutions method
+        return super().perform_substitutions(substitutions)
 
     @classmethod
     def from_file(cls, filename: str) -> "ICOOLInput":
