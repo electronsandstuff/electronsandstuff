@@ -13,9 +13,11 @@ class ICoolField(BaseModel):
     name: Literal["FIELD"] = "FIELD"
 
     @classmethod
-    def parse_input_file(cls, lines: List[str], start_idx: int) -> Tuple["ICoolField", int]:
+    def parse_input_file(
+        cls, lines: List[str], start_idx: int
+    ) -> Tuple["ICoolField", int]:
         ftag = stripped_no_comment_str(lines[start_idx])
-        fparam = stripped_no_comment_str(lines[start_idx+1]).split()
+        fparam = stripped_no_comment_str(lines[start_idx + 1]).split()
         fparam = [to_float_or_sub(x) for x in fparam]
 
         if ftag == "NONE":
@@ -35,22 +37,24 @@ class ICoolField(BaseModel):
                     long_mode_p=fparam[7],
                 )
             else:
-                raise ValueError(f"Sorry, but accelerating cavity model {model} is not implemented yet")
+                raise ValueError(
+                    f"Sorry, but accelerating cavity model {model} is not implemented yet"
+                )
         else:
-            raise ValueError(f"Unrecognized value for FTAG: \"{ftag}\"")
+            raise ValueError(f'Unrecognized value for FTAG: "{ftag}"')
         return obj, (start_idx + 2)
 
 
 class FieldSTUS(ICoolField):
-    name: Literal['STUS'] = "STUS"
+    name: Literal["STUS"] = "STUS"
 
 
 class FieldNone(ICoolField):
-    name: Literal['NONE'] = "NONE"
+    name: Literal["NONE"] = "NONE"
 
 
 class FieldAccel2(ICoolField):
-    name: Literal['ACCEL2'] = "ACCEL2"
+    name: Literal["ACCEL2"] = "ACCEL2"
     freq: FloatOrSub
     gradient: FloatOrSub
     phase: FloatOrSub

@@ -13,9 +13,11 @@ class ICoolGeometry(BaseModel):
     name: Literal["Geometry"] = "Geometry"
 
     @classmethod
-    def parse_input_file(cls, lines: List[str], start_idx: int) -> Tuple["ICoolGeometry", int]:
+    def parse_input_file(
+        cls, lines: List[str], start_idx: int
+    ) -> Tuple["ICoolGeometry", int]:
         gtag = stripped_no_comment_str(lines[start_idx])
-        gparam = stripped_no_comment_str(lines[start_idx+1]).split()
+        gparam = stripped_no_comment_str(lines[start_idx + 1]).split()
         gparam = [to_float_or_sub(x) for x in gparam]
 
         if gtag == "NONE":
@@ -70,10 +72,7 @@ class ICoolGeometry(BaseModel):
                 a3=gparam[0],
             )
         elif gtag == "RING":
-            obj = GeometryRing(
-                r_inner=gparam[0],
-                r_outer=gparam[1]
-            )
+            obj = GeometryRing(r_inner=gparam[0], r_outer=gparam[1])
         elif gtag == "WEDGE":
             obj = GeometryWedge(
                 full_angle=gparam[0],
@@ -81,10 +80,10 @@ class ICoolGeometry(BaseModel):
                 vert_z=gparam[2],
                 vert_phi=gparam[3],
                 width=gparam[4],
-                height=gparam[5]
+                height=gparam[5],
             )
         else:
-            raise ValueError(f"Unrecognized value for GTAG: \"{gtag}\"")
+            raise ValueError(f'Unrecognized value for GTAG: "{gtag}"')
         return obj, (start_idx + 2)
 
 
