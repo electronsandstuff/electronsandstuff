@@ -20,11 +20,7 @@ class ICoolField(ICoolBase):
         fparam = stripped_no_comment_str(lines[start_idx + 1]).split()
         fparam = [to_float_or_sub(x) for x in fparam]
 
-        if ftag == "NONE":
-            obj = FieldNone()
-        elif ftag == "STUS":
-            obj = FieldSTUS()
-        elif ftag == "ACCEL":
+        if ftag == "ACCEL":
             model = int(fparam[0])
             if model == 2:
                 obj = FieldAccel2(
@@ -36,10 +32,27 @@ class ICoolField(ICoolBase):
                     y_offset=fparam[6],
                     long_mode_p=fparam[7],
                 )
+            if model == 10:
+                obj = FieldAccel10(
+                    phase=fparam[3],
+                    n_wavelen=fparam[4],
+                    reset=fparam[5],
+                    total_len=fparam[6],
+                    g0=fparam[7],
+                    g1=fparam[8],
+                    g2=fparam[9],
+                    phase_model=fparam[11],
+                )
             else:
                 raise ValueError(
                     f"Sorry, but accelerating cavity model {model} is not implemented yet"
                 )
+        elif ftag == "NONE":
+            obj = FieldNone()
+        elif ftag == "SOL":
+            obj = FieldSol()
+        elif ftag == "STUS":
+            obj = FieldSTUS()
         else:
             raise ValueError(f'Unrecognized value for FTAG: "{ftag}"')
         return obj, (start_idx + 2)
@@ -64,4 +77,20 @@ class FieldAccel2(ICoolField):
     long_mode_p: IntOrSub
 
 
-all_fields = Union[FieldSTUS, FieldNone, FieldAccel2]
+class FieldAccel10(ICoolField):
+    name: Literal["ACCEL10"] = "ACCEL10"
+    phase: FloatOrSub
+    n_wavelen: FloatOrSub
+    reset: FloatOrSub
+    total_len: FloatOrSub
+    g0: FloatOrSub
+    g1: FloatOrSub
+    g2: FloatOrSub
+    phase_model: IntOrSub
+
+
+class FieldSol(ICoolField):
+    name: Literal["SOL"] = "SOL"
+
+
+all_fields = Union[FieldSTUS, FieldNone, FieldAccel2, FieldAccel10, FieldSol]

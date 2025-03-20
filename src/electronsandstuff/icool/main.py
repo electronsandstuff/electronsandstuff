@@ -12,7 +12,7 @@ from .utils import stripped_no_comment_str
 logger = logging.getLogger(__name__)
 
 
-class IcoolInput(ICoolBase):
+class ICoolInput(ICoolBase):
     """Represents an ICOOL input file."""
 
     title: str = Field(default="", description="Title of the input file (max 79 chars)")
@@ -25,7 +25,7 @@ class IcoolInput(ICoolBase):
 
     def perform_substitutions(
         self, substitutions: Optional[Dict[str, Any]] = None
-    ) -> "IcoolInput":
+    ) -> "ICoolInput":
         """
         Create a new object with substitutions applied to all member variables.
 
@@ -34,7 +34,7 @@ class IcoolInput(ICoolBase):
                            If None, constructs a dictionary from self.substitutions.
 
         Returns:
-            A new instance of IcoolInput with substitutions applied.
+            A new instance of ICoolInput with substitutions applied.
         """
         # If substitutions is None, construct it from self.substitutions
         if substitutions is None:
@@ -46,7 +46,7 @@ class IcoolInput(ICoolBase):
         return super().perform_substitutions(substitutions)
 
     @classmethod
-    def from_file(cls, filename: str) -> "IcoolInput":
+    def from_file(cls, filename: str) -> "ICoolInput":
         """Load an ICOOL input file and parse it into a pydantic structure."""
         with open(filename, "r") as f:
             content = f.read()
@@ -54,7 +54,7 @@ class IcoolInput(ICoolBase):
         return cls.from_str(content)
 
     @classmethod
-    def from_str(cls, content: str) -> "IcoolInput":
+    def from_str(cls, content: str) -> "ICoolInput":
         """Load an ICOOL input file from a string and parse it into a pydantic structure."""
         lines = content.splitlines()
 

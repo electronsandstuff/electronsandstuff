@@ -110,6 +110,9 @@ class SRegion(RegionCommand):
             )
 
             end_idx += 6
+            logger.debug(
+                f'Finished subregion {reg_idx} (end_idx={end_idx}, end_line="{lines[end_idx]}")'
+            )
 
         obj = cls(
             slen=slen,
@@ -321,7 +324,7 @@ class Repeat(RegionCommand):
     n_repeat: IntOrSub
     commands: List[
         Annotated[
-            Union[SRegion, RefP, Grid, DVar],
+            Union[SRegion, RefP, Grid, DVar, "Repeat"],
             Field(discriminator="name"),
         ]
     ] = Field(default_factory=list)
@@ -391,12 +394,13 @@ def parse_region_cmds(lines, start_idx, end_cmd=""):
             cmd, idx = Repeat.parse_input_file(lines, idx)
         elif cmd_name == end_cmd:
             logger.debug(f"Hit end command: {end_cmd}")
+            idx += 1
             break
         else:
             logger.warning(f'Unrecognized command: "{cmd_name}"')
+            idx += 1
+            continue
         cmds.append(cmd)
-
-        idx += 1
 
     return cmds, idx
 
