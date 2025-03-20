@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import List, Dict, Union, Literal, Tuple, Annotated
+from typing import List, Union, Literal, Tuple, Annotated
 import logging
 
 from .substitution import (
@@ -88,7 +88,7 @@ class SRegion(RegionCommand):
         return obj, end_idx
 
 
-# Phase models
+# Phase models for "RefP"
 class PhModRef2(BaseModel):
     name: Literal["PHMODREF2"] = "PHMODREF2"
 
@@ -286,13 +286,6 @@ class Repeat(RegionCommand):
         return cls(commands=cmds, n_repeat=n_repeat), end_idx
 
 
-# The registered commands
-registered_commands: List[RegionCommand] = [SRegion, RefP, Grid, DVar, Cell, Repeat]
-name_to_command: Dict[str, RegionCommand] = {
-    cmd.model_fields["name"].default: cmd for cmd in registered_commands
-}
-
-
 def parse_region_cmds(lines, start_idx, end_cmd=""):
     logger.debug(
         f"Begining to parse region commands (len(lines)={len(lines)}, start_idx={start_idx}, end_cmd={end_cmd})"
@@ -300,19 +293,31 @@ def parse_region_cmds(lines, start_idx, end_cmd=""):
     idx = start_idx
     cmds = []
     while idx < len(lines):
-        line_stripped = stripped_no_comment_str(lines[idx])
+        cmd_name = stripped_no_comment_str(lines[idx])
 
-        # If we see a registered command, parse it and add to list
-        if line_stripped in name_to_command:
-            logger.debug(f'Found command "{line_stripped}"')
-            cmd, end_idx = name_to_command[line_stripped].parse_input_file(lines, idx)
-            cmds.append(cmd)
-            idx = end_idx
+        if not cmd_name:
+            idx += 1
             continue
 
-        # If we see the "end command" for this section
-        if line_stripped == end_cmd:
+        # If we see a registered command, parse it and add to list
+        if cmd_name == "SREGION":
+            cmd, idx = SRegion.parse_input_file(lines, idx)
+        elif cmd_name == "REFP":
+            cmd, idx = RefP.parse_input_file(lines, idx)
+        elif cmd_name == "GRID":
+            cmd, idx = Grid.parse_input_file(lines, idx)
+        elif cmd_name == "DVAR":
+            cmd, idx = DVar.parse_input_file(lines, idx)
+        elif cmd_name == "CELL":
+            cmd, idx = Cell.parse_input_file(lines, idx)
+        elif cmd_name == "REPEAT":
+            cmd, idx = Repeat.parse_input_file(lines, idx)
+        elif cmd_name == end_cmd:
+            logger.debug(f"Hit end command: {end_cmd}")
             break
+        else:
+            logger.warning(f'Unrecognized command: "{cmd_name}"')
+        cmds.append(cmd)
 
         idx += 1
 
