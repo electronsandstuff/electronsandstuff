@@ -1,5 +1,5 @@
 from pydantic import Field
-from typing import List, Union, Literal, Tuple, Annotated
+from typing import List, Union, Literal, Tuple, Annotated, Optional
 import logging
 
 from .base import ICoolBase
@@ -41,7 +41,7 @@ class RegionCommand(ICoolBase):
 
     @classmethod
     def parse_input_file(
-        cls, lines: List[str], start_idx: int
+        cls, lines: List[str], start_idx: int, state: Optional[dict] = None
     ) -> Tuple["RegionCommand", int]:
         raise NotImplementedError
 
@@ -77,7 +77,7 @@ class SRegion(RegionCommand):
 
     @classmethod
     def parse_input_file(
-        cls, lines: List[str], start_idx: int
+        cls, lines: List[str], start_idx: int, state: Optional[dict] = None
     ) -> Tuple["RegionCommand", int]:
         slen, nrreg, zstep = stripped_no_comment_str(lines[start_idx + 1]).split()
         slen = to_float_or_sub(slen)
@@ -164,7 +164,7 @@ class RefP(RegionCommand):
 
     @classmethod
     def parse_input_file(
-        cls, lines: List[str], start_idx: int
+        cls, lines: List[str], start_idx: int, state: Optional[dict] = None
     ) -> Tuple["RegionCommand", int]:
         # Pull out parameters
         refpar, param_a, param_b, param_c, phmoderef = stripped_no_comment_str(
@@ -192,6 +192,26 @@ class RefP(RegionCommand):
         return cls(refpar=refpar, phmodref=phmodref), (start_idx + 2)
 
 
+class Ref2(RefP):
+    name: Literal["REF2"] = "REF2"
+
+    @classmethod
+    def parse_input_file(
+        cls, lines: List[str], start_idx: int, state: Optional[dict] = None
+    ) -> Tuple["RegionCommand", int]:
+        if state and "REFP" in state:
+            lines = [
+                lines[start_idx],
+                f"{lines[start_idx+1]} {state['REFP'].phmodref.__class__.__name__[-1]}",
+            ]
+            obj, idx = super().parse_input_file(lines, 0, state)
+            return obj, idx + start_idx
+        else:
+            raise ValueError(
+                f"Found REF2 without seeing REFP first, cannot determine PHMODREF (contents of state dict: {state.keys() if state else state})"
+            )
+
+
 class Grid(RegionCommand):
     name: Literal["GRID"] = "GRID"
     grid_num: IntOrSub
@@ -206,7 +226,7 @@ class Grid(RegionCommand):
 
     @classmethod
     def parse_input_file(
-        cls, lines: List[str], start_idx: int
+        cls, lines: List[str], start_idx: int, state: Optional[dict] = None
     ) -> Tuple["RegionCommand", int]:
         grid_num = stripped_no_comment_str(lines[start_idx + 1])
         field_type = stripped_no_comment_str(lines[start_idx + 2])
@@ -253,7 +273,7 @@ class DVar(RegionCommand):
 
     @classmethod
     def parse_input_file(
-        cls, lines: List[str], start_idx: int
+        cls, lines: List[str], start_idx: int, state: Optional[dict] = None
     ) -> Tuple["RegionCommand", int]:
         # Grab the parameters
         var_idx, change, apply_to = stripped_no_comment_str(
@@ -274,7 +294,7 @@ class Cell(RegionCommand):
     field: Annotated[all_fields, Field(discriminator="name")]
     commands: List[
         Annotated[
-            Union[SRegion, RefP, Grid, DVar, "Repeat"],
+            Union[SRegion, RefP, Ref2, Grid, DVar, "Repeat"],
             Field(discriminator="name"),
         ]
     ] = Field(default_factory=list)
@@ -304,7 +324,7 @@ class Cell(RegionCommand):
 
     @classmethod
     def parse_input_file(
-        cls, lines: List[str], start_idx: int
+        cls, lines: List[str], start_idx: int, state: Optional[dict] = None
     ) -> Tuple["RegionCommand", int]:
         # Grab parameters from top of cell
         n_cells = to_int_or_sub(stripped_no_comment_str(lines[start_idx + 1]))
@@ -312,7 +332,9 @@ class Cell(RegionCommand):
         field, _ = ICoolField.parse_input_file(lines, start_idx + 3)
 
         # Process internal commands
-        cmds, end_idx = parse_region_cmds(lines, start_idx + 5, end_cmd="ENDCELL")
+        cmds, end_idx = parse_region_cmds(
+            lines, start_idx + 5, end_cmd="ENDCELL", state=state
+        )
 
         # Make object
         obj = cls(commands=cmds, n_cells=n_cells, cell_flip=cell_flip, field=field)
@@ -324,7 +346,7 @@ class Repeat(RegionCommand):
     n_repeat: IntOrSub
     commands: List[
         Annotated[
-            Union[SRegion, RefP, Grid, DVar, "Repeat"],
+            Union[SRegion, RefP, Ref2, Grid, DVar, "Repeat"],
             Field(discriminator="name"),
         ]
     ] = Field(default_factory=list)
@@ -354,19 +376,24 @@ class Repeat(RegionCommand):
 
     @classmethod
     def parse_input_file(
-        cls, lines: List[str], start_idx: int
+        cls, lines: List[str], start_idx: int, state: Optional[dict] = None
     ) -> Tuple["RegionCommand", int]:
         # Get the number of repeats
         n_repeat = to_int_or_sub(stripped_no_comment_str(lines[start_idx + 1]))
 
         # Process commands in the block
-        cmds, end_idx = parse_region_cmds(lines, start_idx + 2, end_cmd="ENDR")
+        cmds, end_idx = parse_region_cmds(
+            lines, start_idx + 2, end_cmd="ENDR", state=state
+        )
 
         # Return the object
         return cls(commands=cmds, n_repeat=n_repeat), end_idx
 
 
-def parse_region_cmds(lines, start_idx, end_cmd=""):
+def parse_region_cmds(lines, start_idx, end_cmd="", state: Optional[dict] = None):
+    if state is None:
+        state = {}
+
     logger.debug(
         f"Begining to parse region commands (len(lines)={len(lines)}, start_idx={start_idx}, end_cmd={end_cmd})"
     )
@@ -381,17 +408,20 @@ def parse_region_cmds(lines, start_idx, end_cmd=""):
 
         # If we see a registered command, parse it and add to list
         if cmd_name == "SREGION":
-            cmd, idx = SRegion.parse_input_file(lines, idx)
+            cmd, idx = SRegion.parse_input_file(lines, idx, state=state)
         elif cmd_name == "REFP":
-            cmd, idx = RefP.parse_input_file(lines, idx)
+            cmd, idx = RefP.parse_input_file(lines, idx, state=state)
+            state["REFP"] = cmd
+        elif cmd_name == "REF2":
+            cmd, idx = Ref2.parse_input_file(lines, idx, state=state)
         elif cmd_name == "GRID":
-            cmd, idx = Grid.parse_input_file(lines, idx)
+            cmd, idx = Grid.parse_input_file(lines, idx, state=state)
         elif cmd_name == "DVAR":
-            cmd, idx = DVar.parse_input_file(lines, idx)
+            cmd, idx = DVar.parse_input_file(lines, idx, state=state)
         elif cmd_name == "CELL":
-            cmd, idx = Cell.parse_input_file(lines, idx)
+            cmd, idx = Cell.parse_input_file(lines, idx, state=state)
         elif cmd_name == "REPEAT":
-            cmd, idx = Repeat.parse_input_file(lines, idx)
+            cmd, idx = Repeat.parse_input_file(lines, idx, state=state)
         elif cmd_name == end_cmd:
             logger.debug(f"Hit end command: {end_cmd}")
             idx += 1
@@ -411,7 +441,7 @@ class CoolingSection(RegionCommand):
     name: Literal["SECTION"] = "SECTION"
     commands: List[
         Annotated[
-            Union[SRegion, RefP, Grid, DVar, Cell, Repeat],
+            Union[SRegion, RefP, Ref2, Grid, DVar, Cell, Repeat],
             Field(discriminator="name"),
         ]
     ] = Field(default_factory=list, description="Content of the cooling section")
