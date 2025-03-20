@@ -1,1 +1,1 @@
-from .icool import ICOOLInput
+from .main import ICOOLInput
