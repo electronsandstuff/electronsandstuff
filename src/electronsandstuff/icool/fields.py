@@ -32,7 +32,7 @@ class ICoolField(ICoolBase):
                     y_offset=fparam[6],
                     long_mode_p=fparam[7],
                 )
-            if model == 10:
+            elif model == 10:
                 obj = FieldAccel10(
                     phase=fparam[3],
                     n_wavelen=fparam[4],
