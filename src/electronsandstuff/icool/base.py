@@ -1,8 +1,9 @@
 from pydantic import BaseModel
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 import logging
 
 from .substitution import SubKey
+from .exceptions import UnresolvedSubstitutionsError
 
 logger = logging.getLogger(__name__)
 
@@ -14,6 +15,45 @@ class ICoolBase(BaseModel):
     This class implements a method to recursively perform substitutions on all
     member variables that are of type SubKey or contain SubKey instances.
     """
+
+    def assert_no_substitutions(self, field_path: Optional[str] = None) -> None:
+        """
+        Recursively check if any of the variables in the class still have SubKey objects.
+
+        Args:
+            field_path: The path to the current field, used for error reporting.
+                        Defaults to None (used for the root object).
+
+        Raises:
+            UnresolvedSubstitutionsError: If any SubKey objects are found.
+        """
+        if field_path is None:
+            field_path = self.__class__.__name__
+
+        # Process each field
+        for field_name, field_value in self.__dict__.items():
+            # Skip private fields
+            if field_name.startswith("_"):
+                continue
+
+            current_path = f"{field_path}.{field_name}"
+
+            # Check for SubKey directly
+            if isinstance(field_value, SubKey):
+                raise UnresolvedSubstitutionsError(current_path, field_value.key)
+
+            # Handle lists - could contain SubKey or ICoolBase objects
+            elif isinstance(field_value, list):
+                for i, item in enumerate(field_value):
+                    item_path = f"{current_path}[{i}]"
+                    if isinstance(item, SubKey):
+                        raise UnresolvedSubstitutionsError(item_path, item.key)
+                    elif isinstance(item, ICoolBase):
+                        item.assert_no_substitutions(item_path)
+
+            # Recursively handle ICoolBase objects
+            elif isinstance(field_value, ICoolBase):
+                field_value.assert_no_substitutions(current_path)
 
     def perform_substitutions(self, substitutions: Dict[str, Any]) -> "ICoolBase":
         """
