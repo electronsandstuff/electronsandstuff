@@ -1,4 +1,4 @@
-from .main import ICOOLInput
+from .main import IcoolInput
 
 
-__all__ = (ICOOLInput,)
+__all__ = (IcoolInput,)
