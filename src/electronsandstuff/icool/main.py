@@ -49,10 +49,10 @@ class ICOOLInput(BaseModel):
         cooling_section = None
         while idx < len(lines):
             line_stripped = stripped_no_comment_str(lines[idx])
-            idx += 1
 
             # Skip comments and empty lines when checking for section markers
             if not line_stripped:
+                idx += 1
                 continue
 
             # If we see a substitution
@@ -65,14 +65,16 @@ class ICOOLInput(BaseModel):
                     substitution = Substitution(name=var_name, value=var_value)
                     substitutions[var_name] = substitution
                     logger.debug(f"Found substitution \"{var_name}\" -> \"{var_value}\"")
+                idx += 1
+                continue
 
             # Start of the cooling regions section
             if line_stripped == "SECTION":
                 logger.debug("Starting to parse cooling section")
-                cmds, end_idx = parse_region_cmds(lines, idx, end_cmd="ENDSECTION")
-                cooling_section = CoolingSection(commands=cmds)
-                idx = end_idx
+                cooling_section, idx = CoolingSection.parse_input_file(lines, idx)
                 continue
+            
+            idx += 1
                 
         return cls(
             title=title,
