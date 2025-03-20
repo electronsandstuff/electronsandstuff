@@ -259,8 +259,17 @@ def parse_region_cmds(lines, start_idx, end_cmd=""):
     return cmds, idx
 
 
-class CoolingSection(BaseModel):
+class CoolingSection(RegionCommand):
     """Represents the cooling section of an ICOOL input file."""
+    name: Literal["SECTION"] = "SECTION"
     commands: List[Annotated[
         Union[SRegion, RefP2, RefP3, RefP4, RefP5, RefP6, Grid, DVar, Cell, Repeat],
         Field(discriminator="name")]] = Field(default_factory=list, description="Content of the cooling section")
+
+    @classmethod
+    def parse_input_file(cls, lines: List[str], start_idx: int) -> Tuple["CoolingSection", int]:
+        # Process commands in the block
+        cmds, end_idx = parse_region_cmds(lines, start_idx+1, end_cmd="ENDSECTION")
+
+        # Return the object
+        return cls(commands=cmds), end_idx
