@@ -439,3 +439,7 @@ class CoolingSection(RegionCommand):
 
         # Return the object
         return cls(commands=cmds), end_idx
+        cmds, end_idx = parse_region_cmds(lines, start_idx + 1, end_cmd="ENDSECTION")
+
+        # Return the object
+        return cls(commands=cmds), end_idx

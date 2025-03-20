@@ -55,6 +55,20 @@ class ICoolBase(BaseModel):
             elif isinstance(field_value, ICoolBase):
                 field_value.assert_no_substitutions(current_path)
 
+    @property
+    def has_substitutions(self) -> bool:
+        """
+        Check if this object or any of its nested objects contain substitutions.
+
+        Returns:
+            bool: True if substitutions are present, False otherwise.
+        """
+        try:
+            self.assert_no_substitutions()
+            return False
+        except UnresolvedSubstitutionsError:
+            return True
+
     def perform_substitutions(self, substitutions: Dict[str, Any]) -> "ICoolBase":
         """
         Create a new object with substitutions applied to all member variables.

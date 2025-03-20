@@ -106,10 +106,16 @@ class ICOOLInput(ICoolBase):
         """
         Calculate the total length of the ICOOL input file.
 
+        If the object contains substitutions, they will be performed first
+        and the length will be calculated on the resulting object.
+
         Returns:
             The total length of all regions in meters.
         """
-        self.assert_no_substitutions()
+        if self.has_substitutions:
+            # Perform substitutions and get length from the resulting object
+            resolved_obj = self.perform_substitutions()
+            return resolved_obj.get_length()
 
         if self.cooling_section is None:
             return 0.0
