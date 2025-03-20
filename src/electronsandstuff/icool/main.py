@@ -4,6 +4,7 @@ import re
 import logging
 
 from .base import ICoolBase
+from .plotting import plot_icool_input
 from .substitution import Substitution
 from .region_commands import CoolingSection
 from .utils import stripped_no_comment_str
@@ -121,3 +122,18 @@ class ICoolInput(ICoolBase):
             return 0.0
 
         return self.cooling_section.get_length(check_substitutions=False)
+
+    def plot_layout(self, fig=None, ax=None, figsize=(6, 4), show_labels=True):
+        """
+        Plot the ICOOL input file elements as boxes.
+
+        Args:
+            icool_input: The ICoolInput object to plot.
+            ax: Optional matplotlib axis to plot on. If None, a new figure is created.
+            figsize: Figure size if creating a new figure.
+            show_labels: Whether to show labels for repeats and cells.
+
+        Returns:
+            The matplotlib axis object.
+        """
+        return plot_icool_input(self, fig, ax, figsize, show_labels)
