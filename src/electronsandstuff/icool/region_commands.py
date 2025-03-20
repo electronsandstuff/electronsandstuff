@@ -88,9 +88,45 @@ class SRegion(RegionCommand):
         return obj, end_idx
 
 
+# Phase models
+class PhModRef2(BaseModel):
+    name: Literal["PHMODREF2"] = "PHMODREF2"
+
+
+class PhModRef3(BaseModel):
+    name: Literal["PHMODREF3"] = "PHMODREF3"
+    pz0: FloatOrSub
+    t0: FloatOrSub
+
+
+class PhModRef4(BaseModel):
+    name: Literal["PHMODREF4"] = "PHMODREF4"
+    pz0: FloatOrSub
+    t0: FloatOrSub
+    dedz: FloatOrSub
+
+
+class PhModRef5(BaseModel):
+    name: Literal["PHMODREF5"] = "PHMODREF5"
+    e0: FloatOrSub
+    dedz: FloatOrSub
+    d2edz2: FloatOrSub
+
+
+class PhModRef6(BaseModel):
+    name: Literal["PHMODREF6"] = "PHMODREF6"
+    e0: FloatOrSub
+    dedz: FloatOrSub
+    d2edz2: FloatOrSub
+
+
 class RefP(RegionCommand):
     name: Literal["REFP"] = "REFP"
     refpar: IntOrSub
+    phmodref: Annotated[
+        Union[PhModRef2, PhModRef3, PhModRef4, PhModRef5, PhModRef6],
+        Field(discriminator="name"),
+    ]
 
     @classmethod
     def parse_input_file(
@@ -106,52 +142,20 @@ class RefP(RegionCommand):
         param_c = to_float_or_sub(param_c)
 
         # Generate the correct chlid class
-        phmoderef = int(phmoderef)
-        if phmoderef == 2:
-            obj = RefP2(refpar=refpar)
-        elif phmoderef == 3:
-            obj = RefP3(refpar=refpar, pz0=param_a, t0=param_b)
-        elif phmoderef == 4:
-            obj = RefP4(refpar=refpar, pz0=param_a, t0=param_b, dedz=param_c)
-        elif phmoderef == 5:
-            obj = RefP5(refpar=refpar, e0=param_a, dedz=param_b, d2edz2=param_c)
-        elif phmoderef == 6:
-            obj = RefP6(refpar=refpar, e0=param_a, dedz=param_b, d2edz2=param_c)
+        phmoderef_idx = int(phmoderef)
+        if phmoderef_idx == 2:
+            phmodref = PhModRef2()
+        elif phmoderef_idx == 3:
+            phmodref = PhModRef3(pz0=param_a, t0=param_b)
+        elif phmoderef_idx == 4:
+            phmodref = PhModRef4(pz0=param_a, t0=param_b, dedz=param_c)
+        elif phmoderef_idx == 5:
+            phmodref = PhModRef5(e0=param_a, dedz=param_b, d2edz2=param_c)
+        elif phmoderef_idx == 6:
+            phmodref = PhModRef6(e0=param_a, dedz=param_b, d2edz2=param_c)
         else:
-            raise ValueError(f"Unrecognized PHMODEREF: {phmoderef}")
-        return obj, (start_idx + 2)
-
-
-class RefP2(RefP):
-    name: Literal["REFP2"] = "REFP2"
-    pass
-
-
-class RefP3(RefP):
-    name: Literal["REFP3"] = "REFP3"
-    pz0: FloatOrSub
-    t0: FloatOrSub
-
-
-class RefP4(RefP):
-    name: Literal["REFP4"] = "REFP4"
-    pz0: FloatOrSub
-    t0: FloatOrSub
-    dedz: FloatOrSub
-
-
-class RefP5(RefP):
-    name: Literal["REFP5"] = "REFP5"
-    e0: FloatOrSub
-    dedz: FloatOrSub
-    d2edz2: FloatOrSub
-
-
-class RefP6(RefP):
-    name: Literal["REFP6"] = "REFP6"
-    e0: FloatOrSub
-    dedz: FloatOrSub
-    d2edz2: FloatOrSub
+            raise ValueError(f"Unrecognized PHMODREF: {phmoderef_idx}")
+        return cls(refpar=refpar, phmodref=phmodref), (start_idx + 2)
 
 
 class Grid(RegionCommand):
@@ -236,7 +240,7 @@ class Cell(RegionCommand):
     field: Annotated[all_fields, Field(discriminator="name")]
     commands: List[
         Annotated[
-            Union[SRegion, RefP2, RefP3, RefP4, RefP5, RefP6, Grid, DVar, "Repeat"],
+            Union[SRegion, RefP, Grid, DVar, "Repeat"],
             Field(discriminator="name"),
         ]
     ] = Field(default_factory=list)
@@ -263,7 +267,7 @@ class Repeat(RegionCommand):
     n_repeat: IntOrSub
     commands: List[
         Annotated[
-            Union[SRegion, RefP2, RefP3, RefP4, RefP5, RefP6, Grid, DVar],
+            Union[SRegion, RefP, Grid, DVar],
             Field(discriminator="name"),
         ]
     ] = Field(default_factory=list)
@@ -321,7 +325,7 @@ class CoolingSection(RegionCommand):
     name: Literal["SECTION"] = "SECTION"
     commands: List[
         Annotated[
-            Union[SRegion, RefP2, RefP3, RefP4, RefP5, RefP6, Grid, DVar, Cell, Repeat],
+            Union[SRegion, RefP, Grid, DVar, Cell, Repeat],
             Field(discriminator="name"),
         ]
     ] = Field(default_factory=list, description="Content of the cooling section")
