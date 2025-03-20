@@ -24,6 +24,21 @@ logger = logging.getLogger(__name__)
 class RegionCommand(ICoolBase):
     pass
 
+    def get_length(self, check_substitutions: bool = True) -> float:
+        """
+        Calculate the length of this region command.
+
+        Args:
+            check_substitutions: If True, verify that all substitutions have been made
+                                before calculating the length.
+
+        Returns:
+            The length of the region in meters. Base implementation returns 0.
+        """
+        if check_substitutions:
+            self.assert_no_substitutions()
+        return 0.0
+
     @classmethod
     def parse_input_file(
         cls, lines: List[str], start_idx: int
@@ -44,6 +59,21 @@ class SRegion(RegionCommand):
     slen: FloatOrSub
     zstep: FloatOrSub
     subregions: List[RSubRegion]
+
+    def get_length(self, check_substitutions: bool = True) -> float:
+        """
+        Calculate the length of this SRegion.
+
+        Args:
+            check_substitutions: If True, verify that all substitutions have been made
+                                before calculating the length.
+
+        Returns:
+            The length of the region in meters (slen value).
+        """
+        if check_substitutions:
+            self.assert_no_substitutions()
+        return self.slen
 
     @classmethod
     def parse_input_file(
@@ -246,6 +276,29 @@ class Cell(RegionCommand):
         ]
     ] = Field(default_factory=list)
 
+    def get_length(self, check_substitutions: bool = True) -> float:
+        """
+        Calculate the length of this Cell, which is the sum of all contained commands
+        multiplied by the number of cells.
+
+        Args:
+            check_substitutions: If True, verify that all substitutions have been made
+                                before calculating the length.
+
+        Returns:
+            The total length of the cell in meters.
+        """
+        if check_substitutions:
+            self.assert_no_substitutions()
+
+        # Sum up the lengths of all commands
+        total_length = sum(
+            cmd.get_length(check_substitutions=False) for cmd in self.commands
+        )
+
+        # Multiply by the number of cells
+        return self.n_cells * total_length
+
     @classmethod
     def parse_input_file(
         cls, lines: List[str], start_idx: int
@@ -272,6 +325,29 @@ class Repeat(RegionCommand):
             Field(discriminator="name"),
         ]
     ] = Field(default_factory=list)
+
+    def get_length(self, check_substitutions: bool = True) -> float:
+        """
+        Calculate the length of this Repeat, which is the sum of all contained commands
+        multiplied by the number of repeats.
+
+        Args:
+            check_substitutions: If True, verify that all substitutions have been made
+                                before calculating the length.
+
+        Returns:
+            The total length of the repeated section in meters.
+        """
+        if check_substitutions:
+            self.assert_no_substitutions()
+
+        # Sum up the lengths of all commands
+        total_length = sum(
+            cmd.get_length(check_substitutions=False) for cmd in self.commands
+        )
+
+        # Multiply by the number of repeats
+        return self.n_repeat * total_length
 
     @classmethod
     def parse_input_file(
@@ -335,6 +411,24 @@ class CoolingSection(RegionCommand):
             Field(discriminator="name"),
         ]
     ] = Field(default_factory=list, description="Content of the cooling section")
+
+    def get_length(self, check_substitutions: bool = True) -> float:
+        """
+        Calculate the total length of the cooling section, which is the sum of all
+        contained commands.
+
+        Args:
+            check_substitutions: If True, verify that all substitutions have been made
+                                before calculating the length.
+
+        Returns:
+            The total length of the cooling section in meters.
+        """
+        if check_substitutions:
+            self.assert_no_substitutions()
+
+        # Sum up the lengths of all commands
+        return sum(cmd.get_length(check_substitutions=False) for cmd in self.commands)
 
     @classmethod
     def parse_input_file(

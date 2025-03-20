@@ -101,3 +101,17 @@ class ICOOLInput(ICoolBase):
         return cls(
             title=title, substitutions=substitutions, cooling_section=cooling_section
         )
+
+    def get_length(self) -> float:
+        """
+        Calculate the total length of the ICOOL input file.
+
+        Returns:
+            The total length of all regions in meters.
+        """
+        self.assert_no_substitutions()
+
+        if self.cooling_section is None:
+            return 0.0
+
+        return self.cooling_section.get_length(check_substitutions=False)
