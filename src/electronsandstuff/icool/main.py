@@ -160,7 +160,14 @@ class ICoolInput(ICoolBase):
         return self.cooling_section.get_length(check_substitutions=False)
 
     def plot_layout(
-        self, fig=None, ax=None, figsize=(6, 4), show_labels=True, rotate_labels=False
+        self,
+        fig=None,
+        ax=None,
+        figsize=(6, 4),
+        show_labels=True,
+        rotate_labels=False,
+        expand_repeats=False,
+        expand_cells=False,
     ):
         """
         Plot the ICOOL input file elements as boxes.
@@ -177,10 +184,23 @@ class ICoolInput(ICoolBase):
             Whether to show labels for repeats and cells, default True.
         rotate_labels : bool, optional
             Whether to rotate labels 90 degrees, default False.
+        expand_repeats : bool, optional
+            Whether to expand repeat sections, plotting all repeats subsequently instead of a single cell, default False.
+        expand_cells : bool, optional
+            Whether to expand cells, plotting all cells subsequently instead of a single cell, default False.
 
         Returns
         -------
         matplotlib.figure.Figure, matplotlib.axes.Axes
             The matplotlib figure and axis objects.
         """
-        return plot_icool_input(self, fig, ax, figsize, show_labels, rotate_labels)
+        return plot_icool_input(
+            self,
+            fig,
+            ax,
+            figsize,
+            show_labels,
+            rotate_labels,
+            expand_repeats,
+            expand_cells,
+        )

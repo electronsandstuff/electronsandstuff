@@ -72,6 +72,8 @@ def plot_icool_input(
     figsize=(6, 4),
     show_labels=True,
     rotate_labels=False,
+    expand_repeats=False,
+    expand_cells=False,
 ):
     """
     Plot the ICOOL input file elements as boxes.
@@ -90,6 +92,10 @@ def plot_icool_input(
         Whether to show labels for repeats and cells, default True.
     rotate_labels : bool, optional
         Whether to rotate labels 90 degrees, default False.
+    expand_repeats : bool, optional
+        Whether to expand repeat sections, plotting all repeats subsequently instead of a single cell, default False.
+    expand_cells : bool, optional
+        Whether to expand cells, plotting all cells subsequently instead of a single cell, default False.
 
     Returns
     -------
@@ -110,6 +116,8 @@ def plot_icool_input(
             figsize=figsize,
             show_labels=show_labels,
             rotate_labels=rotate_labels,
+            expand_repeats=expand_repeats,
+            expand_cells=expand_cells,
         )
 
     if icool_input.cooling_section is None:
@@ -125,7 +133,14 @@ def plot_icool_input(
 
     # Plot the cooling section
     bbox = plot_commands(
-        ax, icool_input.cooling_section.commands, 0, 0, show_labels, rotate_labels
+        ax,
+        icool_input.cooling_section.commands,
+        0,
+        0,
+        show_labels,
+        rotate_labels,
+        expand_repeats,
+        expand_cells,
     )
 
     # Set axis properties
@@ -142,7 +157,16 @@ def plot_icool_input(
     return fig, ax
 
 
-def plot_commands(ax, commands, z_start, level, show_labels, rotate_labels=False):
+def plot_commands(
+    ax,
+    commands,
+    z_start,
+    level,
+    show_labels,
+    rotate_labels=False,
+    expand_repeats=False,
+    expand_cells=False,
+):
     """
     Recursively plot commands.
 
@@ -160,6 +184,10 @@ def plot_commands(ax, commands, z_start, level, show_labels, rotate_labels=False
         Whether to show labels.
     rotate_labels : bool, optional
         Whether to rotate labels 90 degrees, default False.
+    expand_repeats : bool, optional
+        Whether to expand repeat sections, default False.
+    expand_cells : bool, optional
+        Whether to expand cells, default False.
 
     Returns
     -------
@@ -172,11 +200,23 @@ def plot_commands(ax, commands, z_start, level, show_labels, rotate_labels=False
             sub_bbox = plot_sregion(ax, cmd, bbox.upper_right[0], level)
         elif isinstance(cmd, Cell):
             sub_bbox = plot_cell(
-                ax, cmd, bbox.upper_right[0], level, show_labels, rotate_labels
+                ax,
+                cmd,
+                bbox.upper_right[0],
+                level,
+                show_labels,
+                rotate_labels,
+                expand_cells,
             )
         elif isinstance(cmd, Repeat):
             sub_bbox = plot_repeat(
-                ax, cmd, bbox.upper_right[0], level, show_labels, rotate_labels
+                ax,
+                cmd,
+                bbox.upper_right[0],
+                level,
+                show_labels,
+                rotate_labels,
+                expand_repeats,
             )
         else:
             # Skip other command types for now
@@ -257,9 +297,11 @@ def plot_sregion(ax, sregion, z_start, level):
     return BoundingBox(lower_left=(z_start, -r_max), upper_right=(z_end, r_max))
 
 
-def plot_cell(ax, cell, z_start, level, show_labels, rotate_labels=False):
+def plot_cell(
+    ax, cell, z_start, level, show_labels, rotate_labels=False, expand_cells=False
+):
     """
-    Plot a Cell as a rectangle that encompasses its     commands.
+    Plot a Cell as a rectangle that encompasses its commands.
 
     Parameters
     ----------
@@ -275,6 +317,8 @@ def plot_cell(ax, cell, z_start, level, show_labels, rotate_labels=False):
         Whether to show labels.
     rotate_labels : bool, optional
         Whether to rotate labels 90 degrees, default False.
+    expand_cells : bool, optional
+        Whether to expand cells, plotting all cells subsequently instead of a single cell, default False.
 
     Returns
     -------
@@ -282,12 +326,24 @@ def plot_cell(ax, cell, z_start, level, show_labels, rotate_labels=False):
         Bounding box containing the plotted Cell.
     """
     # First, calculate the total length of one cell
-    sum(cmd.get_length(check_substitutions=False) for cmd in cell.commands)
-
-    # Plot the commands for the first cell
-    bbox = plot_commands(
-        ax, cell.commands, z_start, level + 1, show_labels, rotate_labels
+    cell_length = sum(
+        cmd.get_length(check_substitutions=False) for cmd in cell.commands
     )
+
+    if not expand_cells or cell.n_cells <= 1:
+        # Plot the commands for the first cell
+        bbox = plot_commands(
+            ax, cell.commands, z_start, level + 1, show_labels, rotate_labels
+        )
+    else:
+        # Plot all cells subsequently
+        bbox = BoundingBox(lower_left=(z_start, 0), upper_right=(z_start, 0))
+        for i in range(cell.n_cells):
+            cell_start = z_start + i * cell_length
+            cell_bbox = plot_commands(
+                ax, cell.commands, cell_start, level + 1, show_labels, rotate_labels
+            )
+            bbox = bbox + cell_bbox
 
     # Expand the box
     t1 = bbox.upper_right[1] - bbox.lower_left[1]
@@ -307,8 +363,8 @@ def plot_cell(ax, cell, z_start, level, show_labels, rotate_labels=False):
     )
     ax.add_patch(rect)
 
-    # Add label for number of cells if requested
-    if show_labels and cell.n_cells > 1:
+    # Add label for number of cells if requested and not expanded
+    if show_labels and cell.n_cells > 1 and not expand_cells:
         label_text = f"{cell.n_cells} cells"
         # Vertical label (rotated 90 degrees)
         ax.text(
@@ -326,7 +382,9 @@ def plot_cell(ax, cell, z_start, level, show_labels, rotate_labels=False):
     return bbox
 
 
-def plot_repeat(ax, repeat, z_start, level, show_labels, rotate_labels=False):
+def plot_repeat(
+    ax, repeat, z_start, level, show_labels, rotate_labels=False, expand_repeats=False
+):
     """
     Plot a Repeat section as a rectangle that encompasses its commands.
 
@@ -344,6 +402,8 @@ def plot_repeat(ax, repeat, z_start, level, show_labels, rotate_labels=False):
         Whether to show labels.
     rotate_labels : bool, optional
         Whether to rotate labels 90 degrees, default False.
+    expand_repeats : bool, optional
+        Whether to expand repeat sections, plotting all repeats subsequently instead of a single repeat, default False.
 
     Returns
     -------
@@ -351,12 +411,24 @@ def plot_repeat(ax, repeat, z_start, level, show_labels, rotate_labels=False):
         Bounding box containing the plotted Repeat section.
     """
     # First, calculate the total length of one repeat
-    sum(cmd.get_length(check_substitutions=False) for cmd in repeat.commands)
-
-    # Plot the commands for the first repeat
-    bbox = plot_commands(
-        ax, repeat.commands, z_start, level + 1, show_labels, rotate_labels
+    repeat_length = sum(
+        cmd.get_length(check_substitutions=False) for cmd in repeat.commands
     )
+
+    if not expand_repeats or repeat.n_repeat <= 1:
+        # Plot the commands for the first repeat
+        bbox = plot_commands(
+            ax, repeat.commands, z_start, level + 1, show_labels, rotate_labels
+        )
+    else:
+        # Plot all repeats subsequently
+        bbox = BoundingBox(lower_left=(z_start, 0), upper_right=(z_start, 0))
+        for i in range(repeat.n_repeat):
+            repeat_start = z_start + i * repeat_length
+            repeat_bbox = plot_commands(
+                ax, repeat.commands, repeat_start, level + 1, show_labels, rotate_labels
+            )
+            bbox = bbox + repeat_bbox
 
     # Expand the box
     t1 = bbox.upper_right[1] - bbox.lower_left[1]
@@ -376,10 +448,9 @@ def plot_repeat(ax, repeat, z_start, level, show_labels, rotate_labels=False):
     )
     ax.add_patch(rect)
 
-    # Add label for number of repeats if requested
-    if show_labels and repeat.n_repeat > 1:
+    # Add label for number of repeats if requested and not expanded
+    if show_labels and repeat.n_repeat > 1 and not expand_repeats:
         label_text = f"{repeat.n_repeat} repeats"
-        print(bbox)
         ax.text(
             bbox.upper_right[0] - 0.02 * bbox.width,
             bbox.upper_right[1] - 0.02 * bbox.height,
