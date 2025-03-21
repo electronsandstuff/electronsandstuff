@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import logging
+import numpy as np
 from dataclasses import dataclass
 from typing import Tuple
 
@@ -271,30 +272,45 @@ def plot_sregion(ax, sregion, z_start, level):
         if isinstance(subregion.field, (FieldAccel2, FieldAccel10)):
             color = "maroon"
 
-        # Create rectangle
-        rect = patches.Rectangle(
-            (z_start, r_low),
-            z_length,
-            r_high - r_low,
-            linewidth=1,
-            edgecolor="black",
-            facecolor=color,
-            alpha=0.7,
-            transform=ax.transData,
-        )
-        ax.add_patch(rect)
+        # If r_low is close to 0, plot one merged box instead of two separate boxes
+        if np.isclose(r_low, 0):
+            # Create a single rectangle from -r_high to r_high
+            rect = patches.Rectangle(
+                (z_start, -r_high),
+                z_length,
+                2 * r_high,  # Total height is 2*r_high
+                linewidth=1,
+                edgecolor="black",
+                facecolor=color,
+                alpha=0.7,
+                transform=ax.transData,
+            )
+            ax.add_patch(rect)
+        else:
+            # Create two separate rectangles as before
+            rect = patches.Rectangle(
+                (z_start, r_low),
+                z_length,
+                r_high - r_low,
+                linewidth=1,
+                edgecolor="black",
+                facecolor=color,
+                alpha=0.7,
+                transform=ax.transData,
+            )
+            ax.add_patch(rect)
 
-        rect = patches.Rectangle(
-            (z_start, -r_high),
-            z_length,
-            r_high - r_low,
-            linewidth=1,
-            edgecolor="black",
-            facecolor=color,
-            alpha=0.7,
-            transform=ax.transData,
-        )
-        ax.add_patch(rect)
+            rect = patches.Rectangle(
+                (z_start, -r_high),
+                z_length,
+                r_high - r_low,
+                linewidth=1,
+                edgecolor="black",
+                facecolor=color,
+                alpha=0.7,
+                transform=ax.transData,
+            )
+            ax.add_patch(rect)
 
     return BoundingBox(lower_left=(z_start, -r_max), upper_right=(z_end, r_max))
 
