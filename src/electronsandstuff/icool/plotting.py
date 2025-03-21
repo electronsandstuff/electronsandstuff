@@ -144,8 +144,8 @@ def plot_icool_input(
     )
 
     # Set axis properties
-    ax.set_xlabel("z position (m)")
-    ax.set_ylabel("r position (m)")
+    ax.set_xlabel(r"$z$ Position (m)")
+    ax.set_ylabel(r"$r$ Position (m)")
     ax.set_title(f"ICOOL Layout: {icool_input.title}")
     ax.grid(True, linestyle="--", alpha=0.7)
 
