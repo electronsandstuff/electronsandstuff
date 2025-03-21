@@ -1,5 +1,5 @@
 from pydantic import Field
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Union, TextIO
 import re
 import logging
 
@@ -30,11 +30,15 @@ class ICoolInput(ICoolBase):
         """
         Create a new object with substitutions applied to all member variables.
 
-        Args:
-            substitutions: A dictionary mapping substitution keys to their values.
-                           If None, constructs a dictionary from self.substitutions.
+        Parameters
+        ----------
+        substitutions : dict, optional
+            A dictionary mapping substitution keys to their values.
+            If None, constructs a dictionary from self.substitutions.
 
-        Returns:
+        Returns
+        -------
+        ICoolInput
             A new instance of ICoolInput with substitutions applied.
         """
         # If substitutions is None, construct it from self.substitutions
@@ -47,16 +51,46 @@ class ICoolInput(ICoolBase):
         return super().perform_substitutions(substitutions)
 
     @classmethod
-    def from_file(cls, filename: str) -> "ICoolInput":
-        """Load an ICOOL input file and parse it into a pydantic structure."""
-        with open(filename, "r") as f:
-            content = f.read()
+    def from_file(cls, file_or_filename: Union[str, TextIO]) -> "ICoolInput":
+        """
+        Load an ICOOL input file and parse it into a pydantic structure.
+
+        Parameters
+        ----------
+        file_or_filename : str or file-like object
+            Path to the ICOOL input file to load, or a file-like object
+            with a read() method.
+
+        Returns
+        -------
+        ICoolInput
+            A new instance of ICoolInput containing the parsed file content.
+        """
+        if isinstance(file_or_filename, str):
+            # If a string is provided, treat it as a filename
+            with open(file_or_filename, "r") as f:
+                content = f.read()
+        else:
+            # Otherwise, assume it's a file-like object with a read method
+            content = file_or_filename.read()
 
         return cls.from_str(content)
 
     @classmethod
     def from_str(cls, content: str) -> "ICoolInput":
-        """Load an ICOOL input file from a string and parse it into a pydantic structure."""
+        """
+        Load an ICOOL input file from a string and parse it into a pydantic structure.
+
+        Parameters
+        ----------
+        content : str
+            String containing the ICOOL input file content.
+
+        Returns
+        -------
+        ICoolInput
+            A new instance of ICoolInput containing the parsed content.
+        """
         lines = content.splitlines()
 
         # First line is the title (up to 79 characters)
@@ -110,7 +144,9 @@ class ICoolInput(ICoolBase):
         If the object contains substitutions, they will be performed first
         and the length will be calculated on the resulting object.
 
-        Returns:
+        Returns
+        -------
+        float
             The total length of all regions in meters.
         """
         if self.has_substitutions:
@@ -129,13 +165,22 @@ class ICoolInput(ICoolBase):
         """
         Plot the ICOOL input file elements as boxes.
 
-        Args:
-            icool_input: The ICoolInput object to plot.
-            ax: Optional matplotlib axis to plot on. If None, a new figure is created.
-            figsize: Figure size if creating a new figure.
-            show_labels: Whether to show labels for repeats and cells.
+        Parameters
+        ----------
+        fig : matplotlib.figure.Figure, optional
+            Figure to plot on. If None, a new figure is created.
+        ax : matplotlib.axes.Axes, optional
+            Matplotlib axis to plot on. If None, a new figure is created.
+        figsize : tuple of float, optional
+            Figure size if creating a new figure, default (6, 4).
+        show_labels : bool, optional
+            Whether to show labels for repeats and cells, default True.
+        rotate_labels : bool, optional
+            Whether to rotate labels 90 degrees, default False.
 
-        Returns:
-            The matplotlib axis object.
+        Returns
+        -------
+        matplotlib.figure.Figure, matplotlib.axes.Axes
+            The matplotlib figure and axis objects.
         """
         return plot_icool_input(self, fig, ax, figsize, show_labels, rotate_labels)

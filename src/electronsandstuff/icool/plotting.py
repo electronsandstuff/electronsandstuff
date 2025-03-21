@@ -76,15 +76,25 @@ def plot_icool_input(
     """
     Plot the ICOOL input file elements as boxes.
 
-    Args:
-        icool_input: The ICoolInput object to plot.
-        ax: Optional matplotlib axis to plot on. If None, a new figure is created.
-        figsize: Figure size if creating a new figure.
-        show_labels: Whether to show labels for repeats and cells.
-        rotate_labels: Whether to rotate labels 90 degrees.
+    Parameters
+    ----------
+    icool_input : ICoolInput
+        The ICoolInput object to plot.
+    fig : matplotlib.figure.Figure, optional
+        Figure to plot on. If None, a new figure is created.
+    ax : matplotlib.axes.Axes, optional
+        Matplotlib axis to plot on. If None, a new figure is created.
+    figsize : tuple of float, optional
+        Figure size if creating a new figure, default (6, 4).
+    show_labels : bool, optional
+        Whether to show labels for repeats and cells, default True.
+    rotate_labels : bool, optional
+        Whether to rotate labels 90 degrees, default False.
 
-    Returns:
-        The matplotlib axis object.
+    Returns
+    -------
+    matplotlib.figure.Figure, matplotlib.axes.Axes
+        The matplotlib figure and axis objects.
     """
     # Create figure if needed
     if ax is None:
@@ -136,16 +146,25 @@ def plot_commands(ax, commands, z_start, level, show_labels, rotate_labels=False
     """
     Recursively plot commands.
 
-    Args:
-        ax: Matplotlib axis to plot on.
-        commands: List of commands to plot.
-        z_start: Starting z position.
-        level: Nesting level for indentation.
-        show_labels: Whether to show labels.
-        rotate_labels: Whether to rotate labels 90 degrees.
+    Parameters
+    ----------
+    ax : matplotlib.axes.Axes
+        Matplotlib axis to plot on.
+    commands : list
+        List of commands to plot.
+    z_start : float
+        Starting z position.
+    level : int
+        Nesting level for indentation.
+    show_labels : bool
+        Whether to show labels.
+    rotate_labels : bool, optional
+        Whether to rotate labels 90 degrees, default False.
 
-    Returns:
-        The ending z position.
+    Returns
+    -------
+    BoundingBox
+        Bounding box containing the plotted commands.
     """
     bbox = BoundingBox(lower_left=(z_start, 0), upper_right=(z_start, 0))
     for cmd in commands:
@@ -177,14 +196,21 @@ def plot_sregion(ax, sregion, z_start, level):
     """
     Plot an SRegion as a box.
 
-    Args:
-        ax: Matplotlib axis to plot on.
-        sregion: The SRegion to plot.
-        z_start: Starting z position.
-        level: Nesting level for indentation.
+    Parameters
+    ----------
+    ax : matplotlib.axes.Axes
+        Matplotlib axis to plot on.
+    sregion : SRegion
+        The SRegion to plot.
+    z_start : float
+        Starting z position.
+    level : int
+        Nesting level for indentation.
 
-    Returns:
-        The ending z position.
+    Returns
+    -------
+    BoundingBox
+        Bounding box containing the plotted SRegion.
     """
     z_length = sregion.slen
     z_end = z_start + z_length
@@ -233,18 +259,27 @@ def plot_sregion(ax, sregion, z_start, level):
 
 def plot_cell(ax, cell, z_start, level, show_labels, rotate_labels=False):
     """
-    Plot a Cell as a rectangle that encompasses its commands.
+    Plot a Cell as a rectangle that encompasses its     commands.
 
-    Args:
-        ax: Matplotlib axis to plot on.
-        cell: The Cell to plot.
-        z_start: Starting z position.
-        level: Nesting level for indentation.
-        show_labels: Whether to show labels.
-        rotate_labels: Whether to rotate labels 90 degrees.
+    Parameters
+    ----------
+    ax : matplotlib.axes.Axes
+        Matplotlib axis to plot on.
+    cell : Cell
+        The Cell to plot.
+    z_start : float
+        Starting z position.
+    level : int
+        Nesting level for indentation.
+    show_labels : bool
+        Whether to show labels.
+    rotate_labels : bool, optional
+        Whether to rotate labels 90 degrees, default False.
 
-    Returns:
-        The ending z position.
+    Returns
+    -------
+    BoundingBox
+        Bounding box containing the plotted Cell.
     """
     # First, calculate the total length of one cell
     sum(cmd.get_length(check_substitutions=False) for cmd in cell.commands)
@@ -295,16 +330,25 @@ def plot_repeat(ax, repeat, z_start, level, show_labels, rotate_labels=False):
     """
     Plot a Repeat section as a rectangle that encompasses its commands.
 
-    Args:
-        ax: Matplotlib axis to plot on.
-        repeat: The Repeat section to plot.
-        z_start: Starting z position.
-        level: Nesting level for indentation.
-        show_labels: Whether to show labels.
-        rotate_labels: Whether to rotate labels 90 degrees.
+    Parameters
+    ----------
+    ax : matplotlib.axes.Axes
+        Matplotlib axis to plot on.
+    repeat : Repeat
+        The Repeat section to plot.
+    z_start : float
+        Starting z position.
+    level : int
+        Nesting level for indentation.
+    show_labels : bool
+        Whether to show labels.
+    rotate_labels : bool, optional
+        Whether to rotate labels 90 degrees, default False.
 
-    Returns:
-        The ending z position.
+    Returns
+    -------
+    BoundingBox
+        Bounding box containing the plotted Repeat section.
     """
     # First, calculate the total length of one repeat
     sum(cmd.get_length(check_substitutions=False) for cmd in repeat.commands)
