@@ -405,8 +405,10 @@ def plot_cell(
     ax.add_patch(rect)
 
     # Add label for number of cells if requested and not expanded
-    if show_labels and cell.n_cells > 1 and not expand_cells:
-        label_text = f"{cell.n_cells} cells"
+    if show_labels and not expand_cells:
+        label_text = f"{cell.n_cells} cell"
+        if cell.n_cells > 1:
+            label_text = label_text + "s"
         # Vertical label (rotated 90 degrees)
         ax.text(
             bbox.upper_right[0] - 0.05 * bbox.width,
@@ -514,8 +516,10 @@ def plot_repeat(
         ax.add_patch(rect)
 
     # Add label for number of repeats if requested and not expanded
-    if show_labels and repeat.n_repeat > 1 and not expand_repeats:
-        label_text = f"{repeat.n_repeat} repeats"
+    if show_labels and not expand_repeats:
+        label_text = f"{repeat.n_repeat} repeat"
+        if repeat.n_repeat > 1:
+            label_text = label_text + "s"
         ax.text(
             bbox.upper_right[0] - 0.02 * bbox.width,
             bbox.upper_right[1] - 0.02 * bbox.height,
