@@ -1,0 +1,83 @@
+Adiabatic buncher (test REF2 - Accel 10 logic)
+
+&SUB  npar  500
+&SUB  pref  0.260
+
+ &cont npart= &npar  bgen=.true. rfdiag=00
+ varstep=.true. nprnt=-2 prlevel=1 ntuple=.true. diagref=.true.
+ phasemodel=3 output1=.true. /
+ &bmt nbeamtyp=1 /
+ 1 2 1. 1
+ 0. 0. 0.        0. 0. 0.200
+ 0.01 0.01 0.01  0.01 0.01 0.01
+ 0
+ &ints ldecay=.false. ldedx=.true. lstrag=.true. lscatter=.true.
+  delev=2 straglev=4 scatlev=4  /
+ &nhs nhist=0 /  
+ &nsc nscat=1 /
+4. 0.25 40 7 67   -0.100 5e-3 20 6 67
+ &nzh nzhist=0 /
+ &nrh nrhist=0 /
+ &nem nemit=8 pxycorr=.false. sigmacut=.true. /
+  1 10 20 30 40 50 60 67 
+ &ncv /
+
+SECTION            
+REFP   
+ 2 &pref  0.  0. 3
+! Note definition of 2nd reference particle
+REF2
+ 2 0.1465 0. 0.
+
+! Drift region
+REPEAT
+4
+SREGION
+ 25.00 1 0.01
+ 1 0.0   1.00
+SOL
+ 1. 1.25 0. 0. 0.    0. 0. 0. 0. 0.    0. 0. 0. 0. 0.
+VAC
+CBLOCK
+ 0. 0. 0. 0. 0.   0. 0. 0. 0. 0.
+ENDR
+
+CELL
+1
+.false.
+SOL
+ 1. 1.25 0. 0. 0.    0. 0. 0. 0. 0.    0. 0. 0. 0. 0.
+
+! The first cell has reset parameter =1 to start buncher
+SREGION
+ 1.00 1 0.01
+ 1 0.0   1.00
+ACCEL
+ 10. 0. 0. 0. 15    1. 60. 0. 0. 4.8    0. 0. 0. 0. 0.
+VAC
+CBLOCK
+ 0. 0. 0. 0. 0.   0. 0. 0. 0. 0.
+ENDCELL
+
+! The other buncher cells have reset parameter =0
+CELL
+59
+.false.
+SOL
+ 1. 1.25 0. 0. 0.    0. 0. 0. 0. 0.    0. 0. 0. 0. 0.
+SREGION
+ 1.00 1 0.01
+ 1 0.0   1.00
+ACCEL
+ 10. 0. 0. 0. 15    0. 60. 0. 0. 4.8    0. 0. 0. 0. 0.
+VAC
+CBLOCK
+ 0. 0. 0. 0. 0.   0. 0. 0. 0. 0.
+ENDCELL
+
+ENDSECTION
+
+
+
+
+
