@@ -24,6 +24,15 @@ logger = logging.getLogger(__name__)
 class RegionCommand(ICoolBase):
     pass
 
+    def expand(self) -> List["RegionCommand"]:
+        """
+        Expand this command by resolving all repetitions.
+
+        Returns:
+            A list of RegionCommands
+        """
+        return [self.model_copy(deep=True)]
+
     def get_length(self, check_substitutions: bool = True) -> float:
         """
         Calculate the length of this region command.
@@ -299,6 +308,26 @@ class Cell(RegionCommand):
         ]
     ] = Field(default_factory=list)
 
+    def expand(self) -> List[RegionCommand]:
+        """
+        Expand this cell by repeating its commands n_cells times and recursively
+        expanding any nested commands.
+
+        Returns:
+            A list of expanded commands
+        """
+        # First expand all child commands
+        expanded_commands = []
+        for cmd in self.commands:
+            expanded_commands.extend(cmd.expand())
+
+        # Now repeat the expanded commands n_cells times
+        result = []
+        for _ in range(self.n_cells):
+            result.extend([cmd.model_copy(deep=True) for cmd in expanded_commands])
+
+        return result
+
     def get_length(self, check_substitutions: bool = True) -> float:
         """
         Calculate the length of this Cell, which is the sum of all contained commands
@@ -350,6 +379,26 @@ class Repeat(RegionCommand):
             Field(discriminator="name"),
         ]
     ] = Field(default_factory=list)
+
+    def expand(self) -> List[RegionCommand]:
+        """
+        Expand this repeat by repeating its commands n_repeat times and recursively
+        expanding any nested commands.
+
+        Returns:
+            A list of expanded commands
+        """
+        # First expand all child commands
+        expanded_commands = []
+        for cmd in self.commands:
+            expanded_commands.extend(cmd.expand())
+
+        # Now repeat the expanded commands n_repeat times
+        result = []
+        for _ in range(self.n_repeat):
+            result.extend([cmd.model_copy(deep=True) for cmd in expanded_commands])
+
+        return result
 
     def get_length(self, check_substitutions: bool = True) -> float:
         """
@@ -445,6 +494,19 @@ class CoolingSection(RegionCommand):
             Field(discriminator="name"),
         ]
     ] = Field(default_factory=list, description="Content of the cooling section")
+
+    def expand(self) -> List[RegionCommand]:
+        """
+        Expand this cooling section by expanding all commands within it.
+
+        Returns:
+            A list of expanded commands
+        """
+        expanded_commands = []
+        for cmd in self.commands:
+            expanded_commands.extend(cmd.expand())
+
+        return expanded_commands
 
     def get_length(self, check_substitutions: bool = True) -> float:
         """
