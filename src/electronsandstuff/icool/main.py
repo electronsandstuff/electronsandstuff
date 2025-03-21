@@ -123,7 +123,9 @@ class ICoolInput(ICoolBase):
 
         return self.cooling_section.get_length(check_substitutions=False)
 
-    def plot_layout(self, fig=None, ax=None, figsize=(6, 4), show_labels=True):
+    def plot_layout(
+        self, fig=None, ax=None, figsize=(6, 4), show_labels=True, rotate_labels=False
+    ):
         """
         Plot the ICOOL input file elements as boxes.
 
@@ -136,4 +138,4 @@ class ICoolInput(ICoolBase):
         Returns:
             The matplotlib axis object.
         """
-        return plot_icool_input(self, fig, ax, figsize, show_labels)
+        return plot_icool_input(self, fig, ax, figsize, show_labels, rotate_labels)

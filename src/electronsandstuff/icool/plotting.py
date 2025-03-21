@@ -65,7 +65,14 @@ class BoundingBox:
         return self.upper_right[1] - self.lower_left[1]
 
 
-def plot_icool_input(icool_input, fig=None, ax=None, figsize=(6, 4), show_labels=True):
+def plot_icool_input(
+    icool_input,
+    fig=None,
+    ax=None,
+    figsize=(6, 4),
+    show_labels=True,
+    rotate_labels=False,
+):
     """
     Plot the ICOOL input file elements as boxes.
 
@@ -74,6 +81,7 @@ def plot_icool_input(icool_input, fig=None, ax=None, figsize=(6, 4), show_labels
         ax: Optional matplotlib axis to plot on. If None, a new figure is created.
         figsize: Figure size if creating a new figure.
         show_labels: Whether to show labels for repeats and cells.
+        rotate_labels: Whether to rotate labels 90 degrees.
 
     Returns:
         The matplotlib axis object.
@@ -86,7 +94,12 @@ def plot_icool_input(icool_input, fig=None, ax=None, figsize=(6, 4), show_labels
     if icool_input.has_substitutions:
         resolved_obj = icool_input.perform_substitutions()
         return plot_icool_input(
-            resolved_obj, fig=fig, ax=ax, figsize=figsize, show_labels=show_labels
+            resolved_obj,
+            fig=fig,
+            ax=ax,
+            figsize=figsize,
+            show_labels=show_labels,
+            rotate_labels=rotate_labels,
         )
 
     if icool_input.cooling_section is None:
@@ -101,7 +114,9 @@ def plot_icool_input(icool_input, fig=None, ax=None, figsize=(6, 4), show_labels
         return ax
 
     # Plot the cooling section
-    bbox = plot_commands(ax, icool_input.cooling_section.commands, 0, 0, show_labels)
+    bbox = plot_commands(
+        ax, icool_input.cooling_section.commands, 0, 0, show_labels, rotate_labels
+    )
 
     # Set axis properties
     ax.set_xlabel("z position (m)")
@@ -117,7 +132,7 @@ def plot_icool_input(icool_input, fig=None, ax=None, figsize=(6, 4), show_labels
     return fig, ax
 
 
-def plot_commands(ax, commands, z_start, level, show_labels):
+def plot_commands(ax, commands, z_start, level, show_labels, rotate_labels=False):
     """
     Recursively plot commands.
 
@@ -127,6 +142,7 @@ def plot_commands(ax, commands, z_start, level, show_labels):
         z_start: Starting z position.
         level: Nesting level for indentation.
         show_labels: Whether to show labels.
+        rotate_labels: Whether to rotate labels 90 degrees.
 
     Returns:
         The ending z position.
@@ -136,9 +152,13 @@ def plot_commands(ax, commands, z_start, level, show_labels):
         if isinstance(cmd, SRegion):
             sub_bbox = plot_sregion(ax, cmd, bbox.upper_right[0], level)
         elif isinstance(cmd, Cell):
-            sub_bbox = plot_cell(ax, cmd, bbox.upper_right[0], level, show_labels)
+            sub_bbox = plot_cell(
+                ax, cmd, bbox.upper_right[0], level, show_labels, rotate_labels
+            )
         elif isinstance(cmd, Repeat):
-            sub_bbox = plot_repeat(ax, cmd, bbox.upper_right[0], level, show_labels)
+            sub_bbox = plot_repeat(
+                ax, cmd, bbox.upper_right[0], level, show_labels, rotate_labels
+            )
         else:
             # Skip other command types for now
             sub_bbox = BoundingBox(
@@ -211,7 +231,7 @@ def plot_sregion(ax, sregion, z_start, level):
     return BoundingBox(lower_left=(z_start, -r_max), upper_right=(z_end, r_max))
 
 
-def plot_cell(ax, cell, z_start, level, show_labels):
+def plot_cell(ax, cell, z_start, level, show_labels, rotate_labels=False):
     """
     Plot a Cell as a rectangle that encompasses its commands.
 
@@ -221,6 +241,7 @@ def plot_cell(ax, cell, z_start, level, show_labels):
         z_start: Starting z position.
         level: Nesting level for indentation.
         show_labels: Whether to show labels.
+        rotate_labels: Whether to rotate labels 90 degrees.
 
     Returns:
         The ending z position.
@@ -229,7 +250,9 @@ def plot_cell(ax, cell, z_start, level, show_labels):
     sum(cmd.get_length(check_substitutions=False) for cmd in cell.commands)
 
     # Plot the commands for the first cell
-    bbox = plot_commands(ax, cell.commands, z_start, level + 1, show_labels)
+    bbox = plot_commands(
+        ax, cell.commands, z_start, level + 1, show_labels, rotate_labels
+    )
 
     # Expand the box
     t1 = bbox.upper_right[1] - bbox.lower_left[1]
@@ -249,10 +272,26 @@ def plot_cell(ax, cell, z_start, level, show_labels):
     )
     ax.add_patch(rect)
 
+    # Add label for number of cells if requested
+    if show_labels and cell.n_cells > 1:
+        label_text = f"{cell.n_cells} cells"
+        # Vertical label (rotated 90 degrees)
+        ax.text(
+            bbox.upper_right[0] - 0.05 * bbox.width,
+            bbox.upper_right[1] - 0.01 * bbox.height,
+            label_text,
+            ha="right",
+            va="top",
+            color="blue",
+            fontsize=9,
+            bbox=dict(facecolor="white", alpha=0.7, pad=2),
+            rotation=-90 if rotate_labels else 0,
+        )
+
     return bbox
 
 
-def plot_repeat(ax, repeat, z_start, level, show_labels):
+def plot_repeat(ax, repeat, z_start, level, show_labels, rotate_labels=False):
     """
     Plot a Repeat section as a rectangle that encompasses its commands.
 
@@ -262,6 +301,7 @@ def plot_repeat(ax, repeat, z_start, level, show_labels):
         z_start: Starting z position.
         level: Nesting level for indentation.
         show_labels: Whether to show labels.
+        rotate_labels: Whether to rotate labels 90 degrees.
 
     Returns:
         The ending z position.
@@ -270,7 +310,9 @@ def plot_repeat(ax, repeat, z_start, level, show_labels):
     sum(cmd.get_length(check_substitutions=False) for cmd in repeat.commands)
 
     # Plot the commands for the first repeat
-    bbox = plot_commands(ax, repeat.commands, z_start, level + 1, show_labels)
+    bbox = plot_commands(
+        ax, repeat.commands, z_start, level + 1, show_labels, rotate_labels
+    )
 
     # Expand the box
     t1 = bbox.upper_right[1] - bbox.lower_left[1]
@@ -289,5 +331,21 @@ def plot_repeat(ax, repeat, z_start, level, show_labels):
         transform=ax.transData,
     )
     ax.add_patch(rect)
+
+    # Add label for number of repeats if requested
+    if show_labels and repeat.n_repeat > 1:
+        label_text = f"{repeat.n_repeat} repeats"
+        print(bbox)
+        ax.text(
+            bbox.upper_right[0] - 0.02 * bbox.width,
+            bbox.upper_right[1] - 0.02 * bbox.height,
+            label_text,
+            ha="right",
+            va="top",
+            color="green",
+            fontsize=9,
+            bbox=dict(facecolor="white", alpha=0.7, pad=2),
+            rotation=-90 if rotate_labels else 0,
+        )
 
     return bbox
