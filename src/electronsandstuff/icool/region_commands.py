@@ -28,7 +28,9 @@ class RegionCommand(ICoolBase):
         """
         Expand this command by resolving all repetitions.
 
-        Returns:
+        Returns
+        -------
+        List[RegionCommand]
             A list of RegionCommands
         """
         return [self.model_copy(deep=True)]
@@ -37,11 +39,15 @@ class RegionCommand(ICoolBase):
         """
         Calculate the length of this region command.
 
-        Args:
-            check_substitutions: If True, verify that all substitutions have been made
-                                before calculating the length.
+        Parameters
+        ----------
+        check_substitutions : bool, default=True
+            If True, verify that all substitutions have been made
+            before calculating the length.
 
-        Returns:
+        Returns
+        -------
+        float
             The length of the region in meters. Base implementation returns 0.
         """
         if check_substitutions:
@@ -73,11 +79,15 @@ class SRegion(RegionCommand):
         """
         Calculate the length of this SRegion.
 
-        Args:
-            check_substitutions: If True, verify that all substitutions have been made
-                                before calculating the length.
+        Parameters
+        ----------
+        check_substitutions : bool, default=True
+            If True, verify that all substitutions have been made
+            before calculating the length.
 
-        Returns:
+        Returns
+        -------
+        float
             The length of the region in meters (slen value).
         """
         if check_substitutions:
@@ -313,7 +323,9 @@ class Cell(RegionCommand):
         Expand this cell by repeating its commands n_cells times and recursively
         expanding any nested commands.
 
-        Returns:
+        Returns
+        -------
+        List[RegionCommand]
             A list of expanded commands
         """
         # First expand all child commands
@@ -333,11 +345,15 @@ class Cell(RegionCommand):
         Calculate the length of this Cell, which is the sum of all contained commands
         multiplied by the number of cells.
 
-        Args:
-            check_substitutions: If True, verify that all substitutions have been made
-                                before calculating the length.
+        Parameters
+        ----------
+        check_substitutions : bool, default=True
+            If True, verify that all substitutions have been made
+            before calculating the length.
 
-        Returns:
+        Returns
+        -------
+        float
             The total length of the cell in meters.
         """
         if check_substitutions:
@@ -385,7 +401,9 @@ class Repeat(RegionCommand):
         Expand this repeat by repeating its commands n_repeat times and recursively
         expanding any nested commands.
 
-        Returns:
+        Returns
+        -------
+        List[RegionCommand]
             A list of expanded commands
         """
         # First expand all child commands
@@ -405,11 +423,15 @@ class Repeat(RegionCommand):
         Calculate the length of this Repeat, which is the sum of all contained commands
         multiplied by the number of repeats.
 
-        Args:
-            check_substitutions: If True, verify that all substitutions have been made
-                                before calculating the length.
+        Parameters
+        ----------
+        check_substitutions : bool, default=True
+            If True, verify that all substitutions have been made
+            before calculating the length.
 
-        Returns:
+        Returns
+        -------
+        float
             The total length of the repeated section in meters.
         """
         if check_substitutions:
@@ -485,7 +507,9 @@ def parse_region_cmds(lines, start_idx, end_cmd="", state: Optional[dict] = None
 
 
 class CoolingSection(RegionCommand):
-    """Represents the cooling section of an ICOOL input file."""
+    """
+    Represents the cooling section of an ICOOL input file.
+    """
 
     name: Literal["SECTION"] = "SECTION"
     commands: List[
@@ -499,7 +523,9 @@ class CoolingSection(RegionCommand):
         """
         Expand this cooling section by expanding all commands within it.
 
-        Returns:
+        Returns
+        -------
+        List[RegionCommand]
             A list of expanded commands
         """
         expanded_commands = []
@@ -513,11 +539,15 @@ class CoolingSection(RegionCommand):
         Calculate the total length of the cooling section, which is the sum of all
         contained commands.
 
-        Args:
-            check_substitutions: If True, verify that all substitutions have been made
-                                before calculating the length.
+        Parameters
+        ----------
+        check_substitutions : bool, default=True
+            If True, verify that all substitutions have been made
+            before calculating the length.
 
-        Returns:
+        Returns
+        -------
+        float
             The total length of the cooling section in meters.
         """
         if check_substitutions:
