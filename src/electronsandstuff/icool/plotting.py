@@ -207,6 +207,7 @@ def plot_commands(
                 show_labels,
                 rotate_labels,
                 expand_cells,
+                expand_repeats,
             )
         elif isinstance(cmd, Repeat):
             sub_bbox = plot_repeat(
@@ -217,6 +218,7 @@ def plot_commands(
                 show_labels,
                 rotate_labels,
                 expand_repeats,
+                expand_cells,
             )
         else:
             # Skip other command types for now
@@ -298,7 +300,14 @@ def plot_sregion(ax, sregion, z_start, level):
 
 
 def plot_cell(
-    ax, cell, z_start, level, show_labels, rotate_labels=False, expand_cells=False
+    ax,
+    cell,
+    z_start,
+    level,
+    show_labels,
+    rotate_labels=False,
+    expand_cells=False,
+    expand_repeats=False,
 ):
     """
     Plot a Cell as a rectangle that encompasses its commands.
@@ -319,6 +328,8 @@ def plot_cell(
         Whether to rotate labels 90 degrees, default False.
     expand_cells : bool, optional
         Whether to expand cells, plotting all cells subsequently instead of a single cell, default False.
+    expand_repeats : bool, optional
+        Whether to expand repeat sections, default False.
 
     Returns
     -------
@@ -333,7 +344,14 @@ def plot_cell(
     if not expand_cells or cell.n_cells <= 1:
         # Plot the commands for the first cell
         bbox = plot_commands(
-            ax, cell.commands, z_start, level + 1, show_labels, rotate_labels
+            ax,
+            cell.commands,
+            z_start,
+            level + 1,
+            show_labels,
+            rotate_labels,
+            expand_repeats,
+            expand_cells,
         )
     else:
         # Plot all cells subsequently
@@ -341,7 +359,14 @@ def plot_cell(
         for i in range(cell.n_cells):
             cell_start = z_start + i * cell_length
             cell_bbox = plot_commands(
-                ax, cell.commands, cell_start, level + 1, show_labels, rotate_labels
+                ax,
+                cell.commands,
+                cell_start,
+                level + 1,
+                show_labels,
+                rotate_labels,
+                expand_repeats,
+                expand_cells,
             )
             bbox = bbox + cell_bbox
 
@@ -383,7 +408,14 @@ def plot_cell(
 
 
 def plot_repeat(
-    ax, repeat, z_start, level, show_labels, rotate_labels=False, expand_repeats=False
+    ax,
+    repeat,
+    z_start,
+    level,
+    show_labels,
+    rotate_labels=False,
+    expand_repeats=False,
+    expand_cells=False,
 ):
     """
     Plot a Repeat section as a rectangle that encompasses its commands.
@@ -404,6 +436,8 @@ def plot_repeat(
         Whether to rotate labels 90 degrees, default False.
     expand_repeats : bool, optional
         Whether to expand repeat sections, plotting all repeats subsequently instead of a single repeat, default False.
+    expand_cells : bool, optional
+        Whether to expand cells, default False.
 
     Returns
     -------
@@ -418,7 +452,14 @@ def plot_repeat(
     if not expand_repeats or repeat.n_repeat <= 1:
         # Plot the commands for the first repeat
         bbox = plot_commands(
-            ax, repeat.commands, z_start, level + 1, show_labels, rotate_labels
+            ax,
+            repeat.commands,
+            z_start,
+            level + 1,
+            show_labels,
+            rotate_labels,
+            expand_repeats,
+            expand_cells,
         )
     else:
         # Plot all repeats subsequently
@@ -426,7 +467,14 @@ def plot_repeat(
         for i in range(repeat.n_repeat):
             repeat_start = z_start + i * repeat_length
             repeat_bbox = plot_commands(
-                ax, repeat.commands, repeat_start, level + 1, show_labels, rotate_labels
+                ax,
+                repeat.commands,
+                repeat_start,
+                level + 1,
+                show_labels,
+                rotate_labels,
+                expand_repeats,
+                expand_cells,
             )
             bbox = bbox + repeat_bbox
 
@@ -435,18 +483,19 @@ def plot_repeat(
     bbox.lower_left = (bbox.lower_left[0], bbox.lower_left[1] - 0.05 * t1)
     bbox.upper_right = (bbox.upper_right[0], bbox.upper_right[1] + 0.05 * t1)
 
-    # Draw a rectangle around the repeat section
-    rect = patches.Rectangle(
-        bbox.lower_left,
-        bbox.width,
-        bbox.height,
-        linewidth=1.5,
-        edgecolor="green",
-        facecolor="none",
-        linestyle="-.",
-        transform=ax.transData,
-    )
-    ax.add_patch(rect)
+    # Draw a rectangle around the repeat section only if not expanded
+    if not expand_repeats or repeat.n_repeat <= 1:
+        rect = patches.Rectangle(
+            bbox.lower_left,
+            bbox.width,
+            bbox.height,
+            linewidth=1.5,
+            edgecolor="green",
+            facecolor="none",
+            linestyle="-.",
+            transform=ax.transData,
+        )
+        ax.add_patch(rect)
 
     # Add label for number of repeats if requested and not expanded
     if show_labels and repeat.n_repeat > 1 and not expand_repeats:
