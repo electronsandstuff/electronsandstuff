@@ -90,6 +90,8 @@ class FieldAccel10(ICoolField):
 
 
 class FieldSol(ICoolField):
+    """Placeholder solenoid element"""
+
     name: Literal["SOL"] = "SOL"
 
 
