@@ -130,7 +130,7 @@ def plot_icool_input(
             va="center",
             transform=ax.transAxes,
         )
-        return ax
+        return fig, ax
 
     # Plot the cooling section
     bbox = plot_commands(
