@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 from typing import Union
 import logging
 
@@ -64,7 +64,8 @@ class Substitution(BaseModel):
         ..., description="Value of the substitution (max 30 chars)"
     )
 
-    @validator("name")
+    @field_validator("name")
+    @classmethod
     def name_length(cls, v):
         if len(v) > 20:
             raise ValueError(
@@ -74,7 +75,8 @@ class Substitution(BaseModel):
             raise ValueError(f"Substitution name '{v}' cannot be 'SUB' or 'SCL'")
         return v
 
-    @validator("value", pre=True)
+    @field_validator("value", mode="before")
+    @classmethod
     def convert_value(cls, v):
         if isinstance(v, (int, float)):
             return v
