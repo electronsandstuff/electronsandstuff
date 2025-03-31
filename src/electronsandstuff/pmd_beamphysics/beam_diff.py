@@ -55,26 +55,36 @@ def plot_marginal(
     min_val = min(np.min(data_a), np.min(data_b))
     max_val = max(np.max(data_a), np.max(data_b))
 
-    # Create the histograms
-    ax.hist(
-        data_a,
-        bins=bins,
-        range=(min_val, max_val),
-        color="C0",
-        alpha=alpha,
-        edgecolor="C0",
-    )
-    ax.hist(
-        data_b,
-        bins=bins,
-        range=(min_val, max_val),
-        color="C1",
-        alpha=alpha,
-        edgecolor="C1",
-    )
+    # Expand range by 5% on both sides
+    range_val = max_val - min_val
+    expansion = 0.05 * range_val
+    min_val -= expansion
+    max_val += expansion
+
+    # Create the histograms using numpy.hist
+    hist_a, bin_edges_a = np.histogram(data_a, bins=bins, range=(min_val, max_val))
+    hist_b, bin_edges_b = np.histogram(data_b, bins=bins, range=(min_val, max_val))
+
+    # Rescale histograms so both peak at 1.0
+    if np.max(hist_a) > 0:
+        hist_a = hist_a / np.max(hist_a)
+    if np.max(hist_b) > 0:
+        hist_b = hist_b / np.max(hist_b)
+
+    # Calculate bin centers for step plotting
+    bin_centers_a = (bin_edges_a[:-1] + bin_edges_a[1:]) / 2
+    bin_centers_b = (bin_edges_b[:-1] + bin_edges_b[1:]) / 2
+
+    # Plot filled histograms with alpha
+    ax.fill_between(bin_centers_a, hist_a, step="mid", alpha=alpha, color="C0")
+    ax.fill_between(bin_centers_b, hist_b, step="mid", alpha=alpha, color="C1")
+
+    # Plot solid lines on top
+    ax.step(bin_centers_a, hist_a, where="mid", color="C0", linewidth=1.5)
+    ax.step(bin_centers_b, hist_b, where="mid", color="C1", linewidth=1.5)
 
     # Set labels
     ax.set_xlabel(var)
-    ax.set_ylabel("Count")
+    ax.set_ylabel("Normalized Count")
 
     return fig, ax
