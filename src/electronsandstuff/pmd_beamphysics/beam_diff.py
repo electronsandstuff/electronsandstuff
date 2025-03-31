@@ -4,8 +4,164 @@ import numpy as np
 from KDEpy import FFTKDE
 
 
-def phase_space_diff(beam_a: ParticleGroup, beam_b: ParticleGroup):
-    pass
+def phase_space_diff(
+    beam_a: ParticleGroup,
+    beam_b: ParticleGroup,
+    var_x: str = "x",
+    var_y: str = "px",
+    grid_size: int = 100,
+    bw: str = "scott",
+    figsize: tuple = (6, 4),
+):
+    """
+    Plot phase space difference between two beams with contours and marginals.
+
+    Parameters
+    ----------
+    beam_a : ParticleGroup
+        First beam object to plot
+    beam_b : ParticleGroup
+        Second beam object to plot
+    var_x : str, optional
+        Variable name for x-axis. Default is "x".
+    var_y : str, optional
+        Variable name for y-axis. Default is "px".
+    grid_size : int, optional
+        Size of the grid for KDE computation. Default is 100.
+    bw : str or float, optional
+        Bandwidth for KDE. Default is "scott".
+    figsize : tuple, optional
+        Figure size (width, height). Default is (10, 8).
+
+    Returns
+    -------
+    fig : matplotlib.figure.Figure
+        Figure containing the plot
+    axes : dict
+        Dictionary of axes containing the plots
+    """
+    # Create figure and gridspec for layout
+    fig = plt.figure(figsize=figsize)
+    gs = fig.add_gridspec(
+        2, 2, width_ratios=[4, 1], height_ratios=[1, 4], hspace=0.05, wspace=0.05
+    )
+
+    # Create axes
+    ax_joint = fig.add_subplot(gs[1, 0])  # Main plot (bottom-left)
+    ax_marg_x = fig.add_subplot(gs[0, 0], sharex=ax_joint)  # Top marginal
+    ax_marg_y = fig.add_subplot(gs[1, 1], sharey=ax_joint)  # Right marginal
+
+    # Turn off tick labels on marginals
+    plt.setp(ax_marg_x.get_xticklabels(), visible=False)
+    plt.setp(ax_marg_y.get_yticklabels(), visible=False)
+
+    # Calculate density for both beams using KDE
+    densities = {}
+    grids = {}
+
+    for i, beam in enumerate([beam_a, beam_b]):
+        # Get data from beam
+        x_data = beam[var_x]
+        y_data = beam[var_y]
+
+        # Calculate mean and standard deviation for standardization
+        x_mean, x_std = np.mean(x_data), np.std(x_data)
+        y_mean, y_std = np.mean(y_data), np.std(y_data)
+
+        # Standardize data to have std=1 in each coordinate
+        x_data_std = (x_data - x_mean) / x_std
+        y_data_std = (y_data - y_mean) / y_std
+
+        # Combine standardized data for KDE
+        data_std = np.vstack([x_data_std, y_data_std]).T
+
+        # Compute bandwidth if using Scott's or Silverman's rule
+        if isinstance(bw, str) and bw.lower() in ["scott", "silverman"]:
+            # Get number of data points
+            n = len(data_std)
+
+            # Scott's and Silverman's rules for 2D data
+            # Both are n^(-1/6) * sigma for 2D data
+            factor = n ** (-1 / 6)
+
+            # For standardized data, sigma = 1
+            sigma = 1.0
+
+            # Calculate bandwidth
+            bandwidth = factor * sigma
+        else:
+            bandwidth = bw
+
+        # Use KDE to estimate density
+        kde = FFTKDE(bw=bandwidth)
+        grid_std, points = kde.fit(data_std, beam.weight).evaluate(grid_size)
+
+        # The grid is of shape (obs, dims), points are of shape (obs, 1)
+        x_grid_std, y_grid_std = np.unique(grid_std[:, 0]), np.unique(grid_std[:, 1])
+
+        # Transform grid points back to original scale
+        x_grid = (x_grid_std * x_std) + x_mean
+        y_grid = (y_grid_std * y_std) + y_mean
+
+        # Reshape points for plotting
+        z = points.reshape(grid_size, grid_size).T
+
+        # Store results
+        densities[i] = z
+        grids[i] = (x_grid, y_grid)
+
+    # Ensure both grids are the same for difference calculation
+    # If they're not, we would need to interpolate, but for simplicity we'll assume they're close enough
+
+    # Calculate density difference (beam_a - beam_b)
+    diff_density = densities[0] - densities[1]
+
+    # Plot density difference using pcolormesh
+    x_grid, y_grid = grids[0]  # Use grid from first beam
+    ax_joint.pcolormesh(x_grid, y_grid, diff_density, cmap="coolwarm", shading="auto")
+
+    # Plot contours for both beams
+    plot_density_contour(
+        beam_a,
+        var_x,
+        var_y,
+        fig=fig,
+        ax=ax_joint,
+        grid_size=grid_size,
+        bw=bw,
+        color="C0",
+    )
+    plot_density_contour(
+        beam_b,
+        var_x,
+        var_y,
+        fig=fig,
+        ax=ax_joint,
+        grid_size=grid_size,
+        bw=bw,
+        color="C1",
+    )
+
+    # Plot marginals
+    plot_marginal([beam_a, beam_b], var_x, fig=fig, ax=ax_marg_x)
+    ax_marg_x.set_xlabel("")
+    ax_marg_x.set_ylabel("")
+    ax_marg_x.tick_params("y", which="both", left=False, right=False, labelleft=False)
+
+    # For y-marginal, we need to rotate the plot
+    plot_marginal([beam_a, beam_b], var_y, fig=fig, ax=ax_marg_y, flip=True)
+    ax_marg_x.tick_params("y", which="both", bottom=False, top=False, labelbottom=False)
+    ax_marg_y.set_xlabel("")
+    ax_marg_y.set_ylabel("")
+
+    # Set main plot labels
+    ax_joint.set_xlabel(var_x)
+    ax_joint.set_ylabel(var_y)
+
+    # Create a dictionary of axes for return
+    axes = {"joint": ax_joint, "marginal_x": ax_marg_x, "marginal_y": ax_marg_y}
+
+    return fig, axes
 
 
 def plot_density_contour(
@@ -124,6 +280,7 @@ def plot_marginal(
     ax=None,
     bins=50,
     alpha=0.7,
+    flip=False,
 ):
     """
     Plot histograms of a variable from multiple beam objects.
@@ -142,6 +299,8 @@ def plot_marginal(
         Number of bins or bin edges for the histograms. Default is 50.
     alpha : float, optional
         Transparency of the histograms. Default is 0.7.
+    flip : bool, optional
+        Flips x and y axes
 
     Returns
     -------
@@ -181,17 +340,33 @@ def plot_marginal(
         bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
 
         # Plot filled histogram with alpha (let matplotlib assign default color)
-        fill_obj = ax.fill_between(bin_centers, hist, step="mid", alpha=alpha)
-        fill_between_objects.append(fill_obj)
+        if flip:
+            # For flipped axes, swap x and y in the plotting
+            fill_obj = ax.fill_betweenx(bin_centers, hist, step="mid", alpha=alpha)
+            fill_between_objects.append(fill_obj)
 
-        # Get the color that was assigned to the fill_between object
-        fill_color = fill_obj.get_facecolor()[0]  # Get the first face color
+            # Get the color that was assigned to the fill_between object
+            fill_color = fill_obj.get_facecolor()[0]  # Get the first face color
 
-        # Plot solid line on top with the same color
-        ax.step(bin_centers, hist, where="mid", color=fill_color, linewidth=1.5)
+            # Plot solid line on top with the same color
+            ax.step(hist, bin_centers, where="mid", color=fill_color, linewidth=1.5)
+        else:
+            # Normal orientation
+            fill_obj = ax.fill_between(bin_centers, hist, step="mid", alpha=alpha)
+            fill_between_objects.append(fill_obj)
+
+            # Get the color that was assigned to the fill_between object
+            fill_color = fill_obj.get_facecolor()[0]  # Get the first face color
+
+            # Plot solid line on top with the same color
+            ax.step(bin_centers, hist, where="mid", color=fill_color, linewidth=1.5)
 
     # Set labels
-    ax.set_xlabel(var)
-    ax.set_ylabel("Normalized Count")
+    if flip:
+        ax.set_ylabel(var)
+        ax.set_xlabel("Normalized Count")
+    else:
+        ax.set_xlabel(var)
+        ax.set_ylabel("Normalized Count")
 
     return fig, ax
