@@ -55,10 +55,18 @@ def plot_density_contour(
     x_data = beam[var_x]
     y_data = beam[var_y]
 
-    # Combine data for KDE
-    data = np.vstack([x_data, y_data]).T
+    # Calculate mean and standard deviation for standardization
+    x_mean, x_std = np.mean(x_data), np.std(x_data)
+    y_mean, y_std = np.mean(y_data), np.std(y_data)
 
-    # Determine data range with 5% expansion
+    # Standardize data to have std=1 in each coordinate
+    x_data_std = (x_data - x_mean) / x_std
+    y_data_std = (y_data - y_mean) / y_std
+
+    # Combine standardized data for KDE
+    data_std = np.vstack([x_data_std, y_data_std]).T
+
+    # Determine data range with 5% expansion for original data (for display)
     x_min, x_max = np.min(x_data), np.max(x_data)
     y_min, y_max = np.min(y_data), np.max(y_data)
 
@@ -73,18 +81,14 @@ def plot_density_contour(
     # Compute bandwidth if using Scott's or Silverman's rule
     if isinstance(bw, str) and bw.lower() in ["scott", "silverman"]:
         # Get number of data points
-        n = len(data)
-
-        # Calculate standard deviations for each dimension
-        std_x = np.std(x_data)
-        std_y = np.std(y_data)
+        n = len(data_std)
 
         # Scott's and Silverman's rules for 2D data
         # Both are n^(-1/6) * sigma for 2D data
         factor = n ** (-1 / 6)
 
-        # Use the average of the standard deviations
-        sigma = (std_x + std_y) / 2
+        # For standardized data, sigma = 1
+        sigma = 1.0
 
         # Calculate bandwidth
         bw = factor * sigma
@@ -92,15 +96,21 @@ def plot_density_contour(
     # Use the provided bandwidth or KDEpy's method
     kde = FFTKDE(bw=bw)
 
-    # Fit the KDE model to the data
-    grid, points = kde.fit(data, beam.weight).evaluate(grid_size)
+    # Fit the KDE model to the standardized data
+    grid_std, points = kde.fit(data_std, beam.weight).evaluate(grid_size)
 
     # The grid is of shape (obs, dims), points are of shape (obs, 1)
-    x, y = np.unique(grid[:, 0]), np.unique(grid[:, 1])
+    x_grid_std, y_grid_std = np.unique(grid_std[:, 0]), np.unique(grid_std[:, 1])
+
+    # Transform grid points back to original scale
+    x = (x_grid_std * x_std) + x_mean
+    y = (y_grid_std * y_std) + y_mean
+
+    # Reshape points for contour plotting
     z = points.reshape(grid_size, grid_size).T
 
     # Plot contours
-    ax.contourf(x, y, z, cmap="viridis", levels=10)
+    ax.contour(x, y, z, levels=10)
 
     # Set labels
     ax.set_xlabel(var_x)
