@@ -16,6 +16,7 @@ def plot_density_contour(
     ax=None,
     grid_size=100,
     bw="scott",
+    color=None,
 ):
     """
     Plot 2D density contours of two variables from a beam object using KDE.
@@ -39,6 +40,8 @@ def plot_density_contour(
         If 'scott', uses Scott's rule for 2D data.
         If 'silverman', uses Silverman's rule for 2D data.
         If another string, will pass to KDEpy (but note these are optimized for 1D data).
+    color : str, tuple, or None, optional
+        Color for the contour lines. If None, uses the next color from the current color cycle.
 
     Returns
     -------
@@ -65,18 +68,6 @@ def plot_density_contour(
 
     # Combine standardized data for KDE
     data_std = np.vstack([x_data_std, y_data_std]).T
-
-    # Determine data range with 5% expansion for original data (for display)
-    x_min, x_max = np.min(x_data), np.max(x_data)
-    y_min, y_max = np.min(y_data), np.max(y_data)
-
-    x_range = x_max - x_min
-    y_range = y_max - y_min
-
-    x_min -= 0.05 * x_range
-    x_max += 0.05 * x_range
-    y_min -= 0.05 * y_range
-    y_max += 0.05 * y_range
 
     # Compute bandwidth if using Scott's or Silverman's rule
     if isinstance(bw, str) and bw.lower() in ["scott", "silverman"]:
@@ -109,8 +100,15 @@ def plot_density_contour(
     # Reshape points for contour plotting
     z = points.reshape(grid_size, grid_size).T
 
-    # Plot contours
-    ax.contour(x, y, z, levels=10)
+    # Plot contours with a single color (from cycler if not specified)
+    if color is None:
+        # Get the next color from the current color cycle
+        # Create a dummy line to get its color, then remove it
+        (line,) = ax.plot([], [])
+        color = line.get_color()
+        line.remove()
+
+    ax.contour(x, y, z, levels=10, colors=color)
 
     # Set labels
     ax.set_xlabel(var_x)
