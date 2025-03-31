@@ -8,8 +8,7 @@ def phase_space_diff(beam_a: ParticleGroup, beam_b: ParticleGroup):
 
 
 def plot_marginal(
-    beam_a: ParticleGroup,
-    beam_b: ParticleGroup,
+    beams: list[ParticleGroup],
     var: str,
     fig=None,
     ax=None,
@@ -17,14 +16,12 @@ def plot_marginal(
     alpha=0.7,
 ):
     """
-    Plot histograms of a variable from two beam objects.
+    Plot histograms of a variable from multiple beam objects.
 
     Parameters
     ----------
-    beam_a : ParticleGroup
-        First beam to plot
-    beam_b : ParticleGroup
-        Second beam to plot
+    beams : list[ParticleGroup]
+        List of beam objects to plot
     var : str
         Variable name to plot
     fig : matplotlib.figure.Figure, optional
@@ -47,13 +44,12 @@ def plot_marginal(
     if fig is None or ax is None:
         fig, ax = plt.subplots(figsize=(6, 4))
 
-    # Get the data
-    data_a = beam_a[var]
-    data_b = beam_b[var]
+    # Get all data from beams
+    all_data = [beam[var] for beam in beams]
 
-    # Determine common bin range for both histograms
-    min_val = min(np.min(data_a), np.min(data_b))
-    max_val = max(np.max(data_a), np.max(data_b))
+    # Determine common bin range for all histograms
+    min_val = min(np.min(data) for data in all_data)
+    max_val = max(np.max(data) for data in all_data)
 
     # Expand range by 5% on both sides
     range_val = max_val - min_val
@@ -61,27 +57,28 @@ def plot_marginal(
     min_val -= expansion
     max_val += expansion
 
-    # Create the histograms using numpy.hist
-    hist_a, bin_edges_a = np.histogram(data_a, bins=bins, range=(min_val, max_val))
-    hist_b, bin_edges_b = np.histogram(data_b, bins=bins, range=(min_val, max_val))
+    # Process each beam
+    fill_between_objects = []
+    for i, data in enumerate(all_data):
+        # Create the histogram using numpy.hist
+        hist, bin_edges = np.histogram(data, bins=bins, range=(min_val, max_val))
 
-    # Rescale histograms so both peak at 1.0
-    if np.max(hist_a) > 0:
-        hist_a = hist_a / np.max(hist_a)
-    if np.max(hist_b) > 0:
-        hist_b = hist_b / np.max(hist_b)
+        # Rescale histogram so it peaks at 1.0
+        if np.max(hist) > 0:
+            hist = hist / np.max(hist)
 
-    # Calculate bin centers for step plotting
-    bin_centers_a = (bin_edges_a[:-1] + bin_edges_a[1:]) / 2
-    bin_centers_b = (bin_edges_b[:-1] + bin_edges_b[1:]) / 2
+        # Calculate bin centers for step plotting
+        bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
 
-    # Plot filled histograms with alpha
-    ax.fill_between(bin_centers_a, hist_a, step="mid", alpha=alpha, color="C0")
-    ax.fill_between(bin_centers_b, hist_b, step="mid", alpha=alpha, color="C1")
+        # Plot filled histogram with alpha (let matplotlib assign default color)
+        fill_obj = ax.fill_between(bin_centers, hist, step="mid", alpha=alpha)
+        fill_between_objects.append(fill_obj)
 
-    # Plot solid lines on top
-    ax.step(bin_centers_a, hist_a, where="mid", color="C0", linewidth=1.5)
-    ax.step(bin_centers_b, hist_b, where="mid", color="C1", linewidth=1.5)
+        # Get the color that was assigned to the fill_between object
+        fill_color = fill_obj.get_facecolor()[0]  # Get the first face color
+
+        # Plot solid line on top with the same color
+        ax.step(bin_centers, hist, where="mid", color=fill_color, linewidth=1.5)
 
     # Set labels
     ax.set_xlabel(var)
