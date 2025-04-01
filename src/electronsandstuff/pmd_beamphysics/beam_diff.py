@@ -123,7 +123,7 @@ def calculate_density_kde(
     return x, y, z
 
 
-def phase_space_diff(
+def joint_and_marginal_diff(
     beam_a: ParticleGroup,
     beam_b: ParticleGroup,
     var_x: str = "x",
@@ -135,7 +135,7 @@ def phase_space_diff(
     label_b: str = "",
 ):
     """
-    Plot phase space difference between two beams with contours and marginals.
+    Plot joint and marginal difference between two variables in two beams.
 
     Parameters
     ----------
