@@ -224,8 +224,18 @@ def phase_space_diff(
     # Plot density difference using pcolormesh
     # Create meshgrid for plotting
     x_grid_mesh, y_grid_mesh = np.meshgrid(x_grid_common, y_grid_common)
+
+    # Create a symmetric range around zero by using the maximum absolute value
+    vmax = max(abs(np.min(diff_density)), abs(np.max(diff_density)))
+
     ax_joint.pcolormesh(
-        x_grid_mesh, y_grid_mesh, diff_density, cmap="seismic", shading="auto"
+        x_grid_mesh,
+        y_grid_mesh,
+        diff_density,
+        cmap="seismic",
+        vmin=-vmax,
+        vmax=vmax,
+        shading="auto",
     )
 
     # Plot contours for both beams
