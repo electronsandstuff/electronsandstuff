@@ -55,9 +55,40 @@ def phase_space_diff(
     plt.setp(ax_marg_x.get_xticklabels(), visible=False)
     plt.setp(ax_marg_y.get_yticklabels(), visible=False)
 
+    # Calculate a common grid for both beams with 5% expansion
+    # Get data from both beams
+    x_data_a = beam_a[var_x]
+    y_data_a = beam_a[var_y]
+    x_data_b = beam_b[var_x]
+    y_data_b = beam_b[var_y]
+
+    # Find global min/max for both variables across both beams
+    x_min_global = min(np.min(x_data_a), np.min(x_data_b))
+    x_max_global = max(np.max(x_data_a), np.max(x_data_b))
+    y_min_global = min(np.min(y_data_a), np.min(y_data_b))
+    y_max_global = max(np.max(y_data_a), np.max(y_data_b))
+
+    # Add 5% expansion to the bounding box
+    x_range_global = x_max_global - x_min_global
+    y_range_global = y_max_global - y_min_global
+    x_min_expanded = x_min_global - 0.05 * x_range_global
+    x_max_expanded = x_max_global + 0.05 * x_range_global
+    y_min_expanded = y_min_global - 0.05 * y_range_global
+    y_max_expanded = y_max_global + 0.05 * y_range_global
+
+    # Create common grid
+    x_grid_common = np.linspace(x_min_expanded, x_max_expanded, grid_size)
+    y_grid_common = np.linspace(y_min_expanded, y_max_expanded, grid_size)
+
+    # Create grid points in the required order for FFTKDE
+    # The grid must be sorted dimension-by-dimension (x_1, x_2, ..., x_D)
+    # This creates points like: (0,0), (0,1), (0,2), (1,0), (1,1), (1,2), ...
+    grid_points_common = np.array(
+        [(x, y) for x in x_grid_common for y in y_grid_common]
+    )
+
     # Calculate density for both beams using KDE
     densities = {}
-    grids = {}
 
     for i, beam in enumerate([beam_a, beam_b]):
         # Get data from beam
@@ -78,11 +109,11 @@ def phase_space_diff(
         # Compute bandwidth if using Scott's or Silverman's rule
         if isinstance(bw, str) and bw.lower() in ["scott", "silverman"]:
             # Get number of data points
-            n = len(data_std)
+            n_points = len(data_std)
 
             # Scott's and Silverman's rules for 2D data
             # Both are n^(-1/6) * sigma for 2D data
-            factor = n ** (-1 / 6)
+            factor = n_points ** (-1 / 6)
 
             # For standardized data, sigma = 1
             sigma = 1.0
@@ -94,31 +125,31 @@ def phase_space_diff(
 
         # Use KDE to estimate density
         kde = FFTKDE(bw=bandwidth)
-        grid_std, points = kde.fit(data_std, beam.weight).evaluate(grid_size)
 
-        # The grid is of shape (obs, dims), points are of shape (obs, 1)
-        x_grid_std, y_grid_std = np.unique(grid_std[:, 0]), np.unique(grid_std[:, 1])
+        # Scale the grid points to standardized space using broadcasting
+        # Create a copy of grid_points_common and transform it
+        grid_points_std = grid_points_common.copy()
+        grid_points_std[:, 0] = (grid_points_std[:, 0] - x_mean) / x_std
+        grid_points_std[:, 1] = (grid_points_std[:, 1] - y_mean) / y_std
 
-        # Transform grid points back to original scale
-        x_grid = (x_grid_std * x_std) + x_mean
-        y_grid = (y_grid_std * y_std) + y_mean
+        # Evaluate on our standardized grid
+        density_values = kde.fit(data_std, beam.weight).evaluate(grid_points_std)
 
         # Reshape points for plotting
-        z = points.reshape(grid_size, grid_size).T
+        density_grid = density_values.reshape(grid_size, grid_size)
 
         # Store results
-        densities[i] = z
-        grids[i] = (x_grid, y_grid)
-
-    # Ensure both grids are the same for difference calculation
-    # If they're not, we would need to interpolate, but for simplicity we'll assume they're close enough
+        densities[i] = density_grid
 
     # Calculate density difference (beam_a - beam_b)
     diff_density = densities[0] - densities[1]
 
     # Plot density difference using pcolormesh
-    x_grid, y_grid = grids[0]  # Use grid from first beam
-    ax_joint.pcolormesh(x_grid, y_grid, diff_density, cmap="coolwarm", shading="auto")
+    # Create meshgrid for plotting
+    x_grid_mesh, y_grid_mesh = np.meshgrid(x_grid_common, y_grid_common)
+    ax_joint.pcolormesh(
+        x_grid_mesh, y_grid_mesh, diff_density.T, cmap="coolwarm", shading="auto"
+    )
 
     # Plot contours for both beams
     plot_density_contour(
