@@ -174,30 +174,23 @@ def phase_space_diff(
     plt.setp(ax_marg_x.get_xticklabels(), visible=False)
     plt.setp(ax_marg_y.get_yticklabels(), visible=False)
 
-    # Calculate a common grid for both beams with 5% expansion
-    # Get data from both beams
-    x_data_a = beam_a[var_x]
-    y_data_a = beam_a[var_y]
-    x_data_b = beam_b[var_x]
-    y_data_b = beam_b[var_y]
-
     # Find global min/max for both variables across both beams
-    x_min_global = min(np.min(x_data_a), np.min(x_data_b))
-    x_max_global = max(np.max(x_data_a), np.max(x_data_b))
-    y_min_global = min(np.min(y_data_a), np.min(y_data_b))
-    y_max_global = max(np.max(y_data_a), np.max(y_data_b))
+    x_min = min(np.min(beam_a[var_x]), np.min(beam_b[var_x]))
+    x_max = max(np.max(beam_a[var_x]), np.max(beam_b[var_x]))
+    y_min = min(np.min(beam_a[var_y]), np.min(beam_b[var_y]))
+    y_max = max(np.max(beam_a[var_y]), np.max(beam_b[var_y]))
 
     # Add 5% expansion to the bounding box
-    x_range_global = x_max_global - x_min_global
-    y_range_global = y_max_global - y_min_global
-    x_min_expanded = x_min_global - 0.05 * x_range_global
-    x_max_expanded = x_max_global + 0.05 * x_range_global
-    y_min_expanded = y_min_global - 0.05 * y_range_global
-    y_max_expanded = y_max_global + 0.05 * y_range_global
+    tx = x_max - x_min
+    ty = y_max - y_min
+    x_min = x_min - 0.05 * tx
+    x_max = x_max + 0.05 * tx
+    y_min = y_min - 0.05 * ty
+    y_max = y_max + 0.05 * ty
 
     # Create common grid
-    x_grid_common = np.linspace(x_min_expanded, x_max_expanded, grid_size)
-    y_grid_common = np.linspace(y_min_expanded, y_max_expanded, grid_size)
+    x_grid_common = np.linspace(x_min, x_max, grid_size)
+    y_grid_common = np.linspace(y_min, y_max, grid_size)
 
     # Create grid points in the required order for FFTKDE
     # The grid must be sorted dimension-by-dimension (x_1, x_2, ..., x_D)
@@ -222,12 +215,8 @@ def phase_space_diff(
     diff_density = densities[0] - densities[1]
 
     # Plot density difference using pcolormesh
-    # Create meshgrid for plotting
     x_grid_mesh, y_grid_mesh = np.meshgrid(x_grid_common, y_grid_common)
-
-    # Create a symmetric range around zero by using the maximum absolute value
     vmax = max(abs(np.min(diff_density)), abs(np.max(diff_density)))
-
     ax_joint.pcolormesh(
         x_grid_mesh,
         y_grid_mesh,
