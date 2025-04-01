@@ -131,6 +131,8 @@ def phase_space_diff(
     grid_size: int = 100,
     bw: str = "scott",
     figsize: tuple = (6, 4),
+    label_a: str = "",
+    label_b: str = "",
 ):
     """
     Plot phase space difference between two beams with contours and marginals.
@@ -151,6 +153,10 @@ def phase_space_diff(
         Bandwidth for KDE. Default is "scott".
     figsize : tuple, optional
         Figure size (width, height). Default is (10, 8).
+    label_a : str, optional
+        Label associated with beam_a for legend
+    label_b : str, optional
+        Label associated with beam_b for legend
 
     Returns
     -------
@@ -264,6 +270,12 @@ def phase_space_diff(
     # Set main plot labels
     ax_joint.set_xlabel(var_x)
     ax_joint.set_ylabel(var_y)
+
+    # Deal with legend
+    if label_a or label_b:
+        ax_joint.plot([], [], c="C0", label=label_a)
+        ax_joint.plot([], [], c="C1", label=label_b)
+        ax_joint.legend()
 
     # Create a dictionary of axes for return
     axes = {"joint": ax_joint, "marginal_x": ax_marg_x, "marginal_y": ax_marg_y}
