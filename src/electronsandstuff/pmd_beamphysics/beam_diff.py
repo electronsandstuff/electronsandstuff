@@ -2,6 +2,125 @@ from pmd_beamphysics import ParticleGroup
 import matplotlib.pyplot as plt
 import numpy as np
 from KDEpy import FFTKDE
+from typing import Union, Tuple, Optional
+
+
+def calculate_density_kde(
+    beam: ParticleGroup,
+    var_x: str,
+    var_y: str,
+    grid_size: Union[int, Tuple[int, int]] = 100,
+    bw: Union[str, float] = "scott",
+    grid_points: Optional[np.ndarray] = None,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """
+    Calculate 2D density of two variables from a beam object using KDE.
+
+    Parameters
+    ----------
+    beam : ParticleGroup
+        Beam object to calculate density for
+    var_x : str
+        Variable name for x-axis
+    var_y : str
+        Variable name for y-axis
+    grid_size : int or tuple, optional
+        Size of the grid for KDE computation. If int, creates a square grid.
+        If tuple, creates a grid with (x_size, y_size). Default is 100.
+    bw : str or float, optional
+        Bandwidth for KDE. If float, will use that value directly.
+        If 'scott', uses Scott's rule for 2D data.
+        If 'silverman', uses Silverman's rule for 2D data.
+        If another string, will pass to KDEpy.
+    grid_points : np.ndarray, optional
+        Custom grid points to evaluate density on. If provided, grid_size is ignored.
+        Should be of shape (n_points, 2) where each row is (x, y).
+
+    Returns
+    -------
+    x : np.ndarray
+        Grid points for x-axis in original scale
+    y : np.ndarray
+        Grid points for y-axis in original scale
+    z : np.ndarray
+        Density values on the grid, shape matches the grid
+    """
+    # Get data from beam
+    x_data = beam[var_x]
+    y_data = beam[var_y]
+
+    # Calculate mean and standard deviation for standardization
+    x_mean, x_std = np.mean(x_data), np.std(x_data)
+    y_mean, y_std = np.mean(y_data), np.std(y_data)
+
+    # Standardize data to have std=1 in each coordinate
+    x_data_std = (x_data - x_mean) / x_std
+    y_data_std = (y_data - y_mean) / y_std
+
+    # Combine standardized data for KDE
+    data_std = np.vstack([x_data_std, y_data_std]).T
+
+    # Compute bandwidth if using Scott's or Silverman's rule
+    if isinstance(bw, str) and bw.lower() in ["scott", "silverman"]:
+        # Get number of data points
+        n_points = len(data_std)
+
+        # Scott's and Silverman's rules for 2D data
+        # Both are n^(-1/6) * sigma for 2D data
+        factor = n_points ** (-1 / 6)
+
+        # For standardized data, sigma = 1
+        sigma = 1.0
+
+        # Calculate bandwidth
+        bandwidth = factor * sigma
+    else:
+        bandwidth = bw
+
+    # Use KDE to estimate density
+    kde = FFTKDE(bw=bandwidth)
+
+    # Fit the KDE model to the standardized data
+    kde_fitted = kde.fit(data_std, beam.weight)
+
+    # Handle different grid evaluation options
+    if grid_points is not None:
+        # Transform provided grid points to standardized space
+        grid_points_std = grid_points.copy()
+        grid_points_std[:, 0] = (grid_points_std[:, 0] - x_mean) / x_std
+        grid_points_std[:, 1] = (grid_points_std[:, 1] - y_mean) / y_std
+
+        # Evaluate on the provided grid
+        density_values = kde_fitted.evaluate(grid_points_std)
+
+        # Extract unique x and y values from the grid
+        x = np.unique(grid_points[:, 0])
+        y = np.unique(grid_points[:, 1])
+
+        # Reshape density values to match grid dimensions
+        z = density_values.reshape(len(x), len(y)).T
+    else:
+        # Handle grid_size as int or tuple
+        if isinstance(grid_size, int):
+            x_grid_size = y_grid_size = grid_size
+        else:
+            x_grid_size, y_grid_size = grid_size
+
+        # Evaluate on a regular grid
+        grid_std, points = kde_fitted.evaluate((x_grid_size, y_grid_size))
+
+        # Extract unique x and y values from the standardized grid
+        x_grid_std = np.unique(grid_std[:, 0])
+        y_grid_std = np.unique(grid_std[:, 1])
+
+        # Transform grid points back to original scale
+        x = (x_grid_std * x_std) + x_mean
+        y = (y_grid_std * y_std) + y_mean
+
+        # Reshape points for plotting
+        z = points.reshape(x_grid_size, y_grid_size).T
+
+    return x, y, z
 
 
 def phase_space_diff(
@@ -91,55 +210,13 @@ def phase_space_diff(
     densities = {}
 
     for i, beam in enumerate([beam_a, beam_b]):
-        # Get data from beam
-        x_data = beam[var_x]
-        y_data = beam[var_y]
+        # Use the common calculate_density_kde function with the common grid
+        _, _, density_grid = calculate_density_kde(
+            beam=beam, var_x=var_x, var_y=var_y, bw=bw, grid_points=grid_points_common
+        )
 
-        # Calculate mean and standard deviation for standardization
-        x_mean, x_std = np.mean(x_data), np.std(x_data)
-        y_mean, y_std = np.mean(y_data), np.std(y_data)
-
-        # Standardize data to have std=1 in each coordinate
-        x_data_std = (x_data - x_mean) / x_std
-        y_data_std = (y_data - y_mean) / y_std
-
-        # Combine standardized data for KDE
-        data_std = np.vstack([x_data_std, y_data_std]).T
-
-        # Compute bandwidth if using Scott's or Silverman's rule
-        if isinstance(bw, str) and bw.lower() in ["scott", "silverman"]:
-            # Get number of data points
-            n_points = len(data_std)
-
-            # Scott's and Silverman's rules for 2D data
-            # Both are n^(-1/6) * sigma for 2D data
-            factor = n_points ** (-1 / 6)
-
-            # For standardized data, sigma = 1
-            sigma = 1.0
-
-            # Calculate bandwidth
-            bandwidth = factor * sigma
-        else:
-            bandwidth = bw
-
-        # Use KDE to estimate density
-        kde = FFTKDE(bw=bandwidth)
-
-        # Scale the grid points to standardized space using broadcasting
-        # Create a copy of grid_points_common and transform it
-        grid_points_std = grid_points_common.copy()
-        grid_points_std[:, 0] = (grid_points_std[:, 0] - x_mean) / x_std
-        grid_points_std[:, 1] = (grid_points_std[:, 1] - y_mean) / y_std
-
-        # Evaluate on our standardized grid
-        density_values = kde.fit(data_std, beam.weight).evaluate(grid_points_std)
-
-        # Reshape points for plotting
-        density_grid = density_values.reshape(grid_size, grid_size)
-
-        # Store results
-        densities[i] = density_grid
+        # Store results - reshape to match the expected grid size
+        densities[i] = density_grid.reshape(grid_size, grid_size)
 
     # Calculate density difference (beam_a - beam_b)
     diff_density = densities[0] - densities[1]
@@ -148,7 +225,7 @@ def phase_space_diff(
     # Create meshgrid for plotting
     x_grid_mesh, y_grid_mesh = np.meshgrid(x_grid_common, y_grid_common)
     ax_joint.pcolormesh(
-        x_grid_mesh, y_grid_mesh, diff_density.T, cmap="coolwarm", shading="auto"
+        x_grid_mesh, y_grid_mesh, diff_density, cmap="seismic", shading="auto"
     )
 
     # Plot contours for both beams
@@ -241,51 +318,10 @@ def plot_density_contour(
     if fig is None or ax is None:
         fig, ax = plt.subplots(figsize=(6, 5))
 
-    # Get data from beam
-    x_data = beam[var_x]
-    y_data = beam[var_y]
-
-    # Calculate mean and standard deviation for standardization
-    x_mean, x_std = np.mean(x_data), np.std(x_data)
-    y_mean, y_std = np.mean(y_data), np.std(y_data)
-
-    # Standardize data to have std=1 in each coordinate
-    x_data_std = (x_data - x_mean) / x_std
-    y_data_std = (y_data - y_mean) / y_std
-
-    # Combine standardized data for KDE
-    data_std = np.vstack([x_data_std, y_data_std]).T
-
-    # Compute bandwidth if using Scott's or Silverman's rule
-    if isinstance(bw, str) and bw.lower() in ["scott", "silverman"]:
-        # Get number of data points
-        n = len(data_std)
-
-        # Scott's and Silverman's rules for 2D data
-        # Both are n^(-1/6) * sigma for 2D data
-        factor = n ** (-1 / 6)
-
-        # For standardized data, sigma = 1
-        sigma = 1.0
-
-        # Calculate bandwidth
-        bw = factor * sigma
-
-    # Use the provided bandwidth or KDEpy's method
-    kde = FFTKDE(bw=bw)
-
-    # Fit the KDE model to the standardized data
-    grid_std, points = kde.fit(data_std, beam.weight).evaluate(grid_size)
-
-    # The grid is of shape (obs, dims), points are of shape (obs, 1)
-    x_grid_std, y_grid_std = np.unique(grid_std[:, 0]), np.unique(grid_std[:, 1])
-
-    # Transform grid points back to original scale
-    x = (x_grid_std * x_std) + x_mean
-    y = (y_grid_std * y_std) + y_mean
-
-    # Reshape points for contour plotting
-    z = points.reshape(grid_size, grid_size).T
+    # Use the common calculate_density_kde function
+    x, y, z = calculate_density_kde(
+        beam=beam, var_x=var_x, var_y=var_y, grid_size=grid_size, bw=bw
+    )
 
     # Plot contours with a single color (from cycler if not specified)
     if color is None:
