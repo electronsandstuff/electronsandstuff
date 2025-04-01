@@ -342,13 +342,159 @@ def plot_density_contour(
         color = line.get_color()
         line.remove()
 
-    ax.contour(x, y, z, levels=10, colors=color)
+    ax.contour(x, y, z, levels=10, colors=color, linewidths=1, alpha=0.8)
 
     # Set labels
     ax.set_xlabel(var_x)
     ax.set_ylabel(var_y)
 
     return fig, ax
+
+
+def phase_space_diff(
+    beam_a: ParticleGroup,
+    beam_b: ParticleGroup,
+    grid_size: int = 100,
+    bw: str = "scott",
+    figsize: tuple = (18, 6),
+    label_a: str = "",
+    label_b: str = "",
+):
+    """
+    Plot three phase space difference plots side by side in one row.
+
+    Parameters
+    ----------
+    beam_a : ParticleGroup
+        First beam object to plot
+    beam_b : ParticleGroup
+        Second beam object to plot
+    grid_size : int, optional
+        Size of the grid for KDE computation. Default is 100.
+    bw : str or float, optional
+        Bandwidth for KDE. Default is "scott".
+    figsize : tuple, optional
+        Figure size (width, height). Default is (18, 6).
+    label_a : str, optional
+        Label associated with beam_a for legend
+    label_b : str, optional
+        Label associated with beam_b for legend
+
+    Returns
+    -------
+    fig : matplotlib.figure.Figure
+        Figure containing the plots
+    axes : dict
+        Dictionary of axes containing the plots
+    """
+    # Define the variable pairs for each subplot
+    var_pairs = [("x", "px"), ("y", "py"), ("delta_t", "delta_energy")]
+
+    # Create a figure with 3 columns and 1 row
+    fig, axs = plt.subplots(1, 3, figsize=figsize)
+
+    # Create a dictionary to store all axes
+    all_axes = {}
+
+    # Create three subplots in a row
+    for i, (var_x, var_y) in enumerate(var_pairs):
+        # Create a subplot
+        ax = axs[i]
+
+        # Calculate density for both beams
+        # Find global min/max for both variables across both beams
+        x_min = min(np.min(beam_a[var_x]), np.min(beam_b[var_x]))
+        x_max = max(np.max(beam_a[var_x]), np.max(beam_b[var_x]))
+        y_min = min(np.min(beam_a[var_y]), np.min(beam_b[var_y]))
+        y_max = max(np.max(beam_a[var_y]), np.max(beam_b[var_y]))
+
+        # Add 5% expansion to the bounding box
+        tx = x_max - x_min
+        ty = y_max - y_min
+        x_min = x_min - 0.05 * tx
+        x_max = x_max + 0.05 * tx
+        y_min = y_min - 0.05 * ty
+        y_max = y_max + 0.05 * ty
+
+        # Create common grid
+        x_grid_common = np.linspace(x_min, x_max, grid_size)
+        y_grid_common = np.linspace(y_min, y_max, grid_size)
+
+        # Create grid points in the required order for FFTKDE
+        grid_points_common = np.array(
+            [(x, y) for x in x_grid_common for y in y_grid_common]
+        )
+
+        # Calculate density for both beams using KDE
+        densities = {}
+        for j, beam in enumerate([beam_a, beam_b]):
+            _, _, density_grid = calculate_density_kde(
+                beam=beam,
+                var_x=var_x,
+                var_y=var_y,
+                bw=bw,
+                grid_points=grid_points_common,
+            )
+            densities[j] = density_grid.reshape(grid_size, grid_size)
+
+        # Calculate density difference (beam_a - beam_b)
+        diff_density = densities[0] - densities[1]
+
+        # Plot density difference using pcolormesh
+        x_grid_mesh, y_grid_mesh = np.meshgrid(x_grid_common, y_grid_common)
+        vmax = max(abs(np.min(diff_density)), abs(np.max(diff_density)))
+        ax.pcolormesh(
+            x_grid_mesh,
+            y_grid_mesh,
+            diff_density,
+            cmap="seismic",
+            vmin=-vmax,
+            vmax=vmax,
+            shading="auto",
+        )
+
+        # Plot contours for both beams
+        plot_density_contour(
+            beam_a,
+            var_x,
+            var_y,
+            fig=fig,
+            ax=ax,
+            grid_size=grid_size,
+            bw=bw,
+            color="C0",
+        )
+        plot_density_contour(
+            beam_b,
+            var_x,
+            var_y,
+            fig=fig,
+            ax=ax,
+            grid_size=grid_size,
+            bw=bw,
+            color="C1",
+        )
+
+        # Set labels
+        ax.set_xlabel(var_x)
+        ax.set_ylabel(var_y)
+
+        # Add a title to each subplot
+        ax.set_title(f"{var_x} vs {var_y}")
+
+        # Add legend to the first plot only
+        if i == 0 and (label_a or label_b):
+            ax.plot([], [], c="C0", label=label_a)
+            ax.plot([], [], c="C1", label=label_b)
+            ax.legend()
+
+        # Store the axes in the dictionary
+        all_axes[f"{var_x}_{var_y}"] = ax
+
+    # Adjust layout
+    fig.tight_layout()
+
+    return fig, all_axes
 
 
 def plot_marginal(
@@ -446,5 +592,3 @@ def plot_marginal(
     else:
         ax.set_xlabel(var)
         ax.set_ylabel("Normalized Count")
-
-    return fig, ax
