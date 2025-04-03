@@ -405,34 +405,33 @@ def phase_space_diff(
     # Define the variable pairs for each subplot
     var_pairs = [("x", "px"), ("y", "py"), ("delta_t", "delta_energy")]
 
-    # Create a figure with a complex grid layout
+    # Create a figure
     fig = plt.figure(figsize=figsize)
 
-    # Create a 2x6 grid (2 rows, 6 columns)
-    # Each joint+marginal plot will take 2x2 grid cells
-    gs = fig.add_gridspec(
-        2,
-        6,
-        width_ratios=[4, 1, 4, 1, 4, 1],  # Main plot, y-marginal for each pair
-        height_ratios=[1, 4],  # x-marginal, main plot
-        hspace=0.05,
-        wspace=0.3,
-    )
+    # Create a top-level gridspec with 3 columns (one for each variable pair)
+    # with wider spacing between pairs
+    top_gs = fig.add_gridspec(1, 3, wspace=0.25)
 
     # Create a dictionary to store all axes
     all_axes = {}
 
     # Create three joint+marginal plots
     for i, (var_x, var_y) in enumerate(var_pairs):
-        # Calculate grid positions for this plot
-        col_start = i * 2  # 0, 2, 4
+        # Create a nested gridspec for each variable pair with tighter spacing
+        # between the density plot and its marginal
+        nested_gs = top_gs[0, i].subgridspec(
+            2,
+            2,
+            width_ratios=[4, 1],  # Main plot, y-marginal
+            height_ratios=[1, 4],  # x-marginal, main plot
+            hspace=0.05,  # Tight spacing between x-marginal and joint plot
+            wspace=0.05,  # Tight spacing between joint plot and y-marginal
+        )
 
         # Create axes for this plot
-        ax_joint = fig.add_subplot(gs[1, col_start])  # Main plot
-        ax_marg_x = fig.add_subplot(gs[0, col_start], sharex=ax_joint)  # Top marginal
-        ax_marg_y = fig.add_subplot(
-            gs[1, col_start + 1], sharey=ax_joint
-        )  # Right marginal
+        ax_joint = fig.add_subplot(nested_gs[1, 0])  # Main plot
+        ax_marg_x = fig.add_subplot(nested_gs[0, 0], sharex=ax_joint)  # Top marginal
+        ax_marg_y = fig.add_subplot(nested_gs[1, 1], sharey=ax_joint)  # Right marginal
 
         # Turn off tick labels on marginals
         plt.setp(ax_marg_x.get_xticklabels(), visible=False)
@@ -466,9 +465,6 @@ def phase_space_diff(
             fig=fig,
             axes=plot_axes,
         )
-
-        # Add a title to each subplot
-        ax_joint.set_title(f"{var_x} vs {var_y}")
 
     # Adjust layout
     fig.tight_layout()
