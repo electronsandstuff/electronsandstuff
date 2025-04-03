@@ -204,12 +204,13 @@ def joint_and_marginal_diff(
     y_max = max(np.max(beam_a[var_y]), np.max(beam_b[var_y]))
 
     # Add 5% expansion to the bounding box
+    expansion = 0.25
     tx = x_max - x_min
     ty = y_max - y_min
-    x_min = x_min - 0.05 * tx
-    x_max = x_max + 0.05 * tx
-    y_min = y_min - 0.05 * ty
-    y_max = y_max + 0.05 * ty
+    x_min = x_min - expansion * tx
+    x_max = x_max + expansion * tx
+    y_min = y_min - expansion * ty
+    y_max = y_max + expansion * ty
 
     # Create common grid
     x_grid_common = np.linspace(x_min, x_max, grid_size)
@@ -240,6 +241,11 @@ def joint_and_marginal_diff(
     # Plot density difference using pcolormesh
     x_grid_mesh, y_grid_mesh = np.meshgrid(x_grid_common, y_grid_common)
     vmax = max(abs(np.min(diff_density)), abs(np.max(diff_density)))
+
+    # Handle identical densities
+    if np.isclose(vmax, 0):
+        vmax = 1.0
+
     ax_joint.pcolormesh(
         x_grid_mesh,
         y_grid_mesh,
@@ -465,9 +471,6 @@ def phase_space_diff(
             fig=fig,
             axes=plot_axes,
         )
-
-    # Adjust layout
-    fig.tight_layout()
 
     return fig, all_axes
 
