@@ -133,6 +133,8 @@ def joint_and_marginal_diff(
     figsize: tuple = (6, 4),
     label_a: str = "",
     label_b: str = "",
+    fig: Optional[plt.Figure] = None,
+    axes: Optional[dict] = None,
 ):
     """
     Plot joint and marginal difference between two variables in two beams.
@@ -152,11 +154,16 @@ def joint_and_marginal_diff(
     bw : str or float, optional
         Bandwidth for KDE. Default is "scott".
     figsize : tuple, optional
-        Figure size (width, height). Default is (10, 8).
+        Figure size (width, height). Default is (6, 4).
     label_a : str, optional
         Label associated with beam_a for legend
     label_b : str, optional
         Label associated with beam_b for legend
+    fig : matplotlib.figure.Figure, optional
+        Figure to plot on. If None, a new figure is created.
+    axes : dict, optional
+        Dictionary of axes to plot on. If None, new axes are created.
+        Should contain keys 'joint', 'marginal_x', and 'marginal_y'.
 
     Returns
     -------
@@ -165,20 +172,30 @@ def joint_and_marginal_diff(
     axes : dict
         Dictionary of axes containing the plots
     """
-    # Create figure and gridspec for layout
-    fig = plt.figure(figsize=figsize)
-    gs = fig.add_gridspec(
-        2, 2, width_ratios=[4, 1], height_ratios=[1, 4], hspace=0.05, wspace=0.05
-    )
+    # Create figure and axes if not provided
+    if fig is None or axes is None:
+        # Create figure and gridspec for layout
+        fig = plt.figure(figsize=figsize)
+        gs = fig.add_gridspec(
+            2, 2, width_ratios=[4, 1], height_ratios=[1, 4], hspace=0.05, wspace=0.05
+        )
 
-    # Create axes
-    ax_joint = fig.add_subplot(gs[1, 0])  # Main plot (bottom-left)
-    ax_marg_x = fig.add_subplot(gs[0, 0], sharex=ax_joint)  # Top marginal
-    ax_marg_y = fig.add_subplot(gs[1, 1], sharey=ax_joint)  # Right marginal
+        # Create axes
+        ax_joint = fig.add_subplot(gs[1, 0])  # Main plot (bottom-left)
+        ax_marg_x = fig.add_subplot(gs[0, 0], sharex=ax_joint)  # Top marginal
+        ax_marg_y = fig.add_subplot(gs[1, 1], sharey=ax_joint)  # Right marginal
 
-    # Turn off tick labels on marginals
-    plt.setp(ax_marg_x.get_xticklabels(), visible=False)
-    plt.setp(ax_marg_y.get_yticklabels(), visible=False)
+        # Turn off tick labels on marginals
+        plt.setp(ax_marg_x.get_xticklabels(), visible=False)
+        plt.setp(ax_marg_y.get_yticklabels(), visible=False)
+
+        # Create a dictionary of axes for return
+        axes = {"joint": ax_joint, "marginal_x": ax_marg_x, "marginal_y": ax_marg_y}
+    else:
+        # Use provided axes
+        ax_joint = axes["joint"]
+        ax_marg_x = axes["marginal_x"]
+        ax_marg_y = axes["marginal_y"]
 
     # Find global min/max for both variables across both beams
     x_min = min(np.min(beam_a[var_x]), np.min(beam_b[var_x]))
@@ -277,9 +294,6 @@ def joint_and_marginal_diff(
         ax_joint.plot([], [], c="C1", label=label_b)
         ax_joint.legend()
 
-    # Create a dictionary of axes for return
-    axes = {"joint": ax_joint, "marginal_x": ax_marg_x, "marginal_y": ax_marg_y}
-
     return fig, axes
 
 
@@ -362,6 +376,7 @@ def phase_space_diff(
 ):
     """
     Plot three phase space difference plots side by side in one row.
+    Each plot includes joint and marginal distributions.
 
     Parameters
     ----------
@@ -390,106 +405,70 @@ def phase_space_diff(
     # Define the variable pairs for each subplot
     var_pairs = [("x", "px"), ("y", "py"), ("delta_t", "delta_energy")]
 
-    # Create a figure with 3 columns and 1 row
-    fig, axs = plt.subplots(1, 3, figsize=figsize)
+    # Create a figure with a complex grid layout
+    fig = plt.figure(figsize=figsize)
+
+    # Create a 2x6 grid (2 rows, 6 columns)
+    # Each joint+marginal plot will take 2x2 grid cells
+    gs = fig.add_gridspec(
+        2,
+        6,
+        width_ratios=[4, 1, 4, 1, 4, 1],  # Main plot, y-marginal for each pair
+        height_ratios=[1, 4],  # x-marginal, main plot
+        hspace=0.05,
+        wspace=0.3,
+    )
 
     # Create a dictionary to store all axes
     all_axes = {}
 
-    # Create three subplots in a row
+    # Create three joint+marginal plots
     for i, (var_x, var_y) in enumerate(var_pairs):
-        # Create a subplot
-        ax = axs[i]
+        # Calculate grid positions for this plot
+        col_start = i * 2  # 0, 2, 4
 
-        # Calculate density for both beams
-        # Find global min/max for both variables across both beams
-        x_min = min(np.min(beam_a[var_x]), np.min(beam_b[var_x]))
-        x_max = max(np.max(beam_a[var_x]), np.max(beam_b[var_x]))
-        y_min = min(np.min(beam_a[var_y]), np.min(beam_b[var_y]))
-        y_max = max(np.max(beam_a[var_y]), np.max(beam_b[var_y]))
+        # Create axes for this plot
+        ax_joint = fig.add_subplot(gs[1, col_start])  # Main plot
+        ax_marg_x = fig.add_subplot(gs[0, col_start], sharex=ax_joint)  # Top marginal
+        ax_marg_y = fig.add_subplot(
+            gs[1, col_start + 1], sharey=ax_joint
+        )  # Right marginal
 
-        # Add 5% expansion to the bounding box
-        tx = x_max - x_min
-        ty = y_max - y_min
-        x_min = x_min - 0.05 * tx
-        x_max = x_max + 0.05 * tx
-        y_min = y_min - 0.05 * ty
-        y_max = y_max + 0.05 * ty
+        # Turn off tick labels on marginals
+        plt.setp(ax_marg_x.get_xticklabels(), visible=False)
+        plt.setp(ax_marg_y.get_yticklabels(), visible=False)
 
-        # Create common grid
-        x_grid_common = np.linspace(x_min, x_max, grid_size)
-        y_grid_common = np.linspace(y_min, y_max, grid_size)
+        # Store axes in dictionary
+        plot_axes = {
+            "joint": ax_joint,
+            "marginal_x": ax_marg_x,
+            "marginal_y": ax_marg_y,
+        }
 
-        # Create grid points in the required order for FFTKDE
-        grid_points_common = np.array(
-            [(x, y) for x in x_grid_common for y in y_grid_common]
-        )
+        # Add these axes to the all_axes dictionary
+        all_axes[f"{var_x}_{var_y}"] = plot_axes
 
-        # Calculate density for both beams using KDE
-        densities = {}
-        for j, beam in enumerate([beam_a, beam_b]):
-            _, _, density_grid = calculate_density_kde(
-                beam=beam,
-                var_x=var_x,
-                var_y=var_y,
-                bw=bw,
-                grid_points=grid_points_common,
-            )
-            densities[j] = density_grid.reshape(grid_size, grid_size)
+        # Call joint_and_marginal_diff with these axes
+        # Only add legend to the first plot
+        use_label_a = label_a if i == 0 else ""
+        use_label_b = label_b if i == 0 else ""
 
-        # Calculate density difference (beam_a - beam_b)
-        diff_density = densities[0] - densities[1]
-
-        # Plot density difference using pcolormesh
-        x_grid_mesh, y_grid_mesh = np.meshgrid(x_grid_common, y_grid_common)
-        vmax = max(abs(np.min(diff_density)), abs(np.max(diff_density)))
-        ax.pcolormesh(
-            x_grid_mesh,
-            y_grid_mesh,
-            diff_density,
-            cmap="seismic",
-            vmin=-vmax,
-            vmax=vmax,
-            shading="auto",
-        )
-
-        # Plot contours for both beams
-        plot_density_contour(
-            beam_a,
-            var_x,
-            var_y,
-            fig=fig,
-            ax=ax,
+        # Call joint_and_marginal_diff with the prepared axes
+        _, _ = joint_and_marginal_diff(
+            beam_a=beam_a,
+            beam_b=beam_b,
+            var_x=var_x,
+            var_y=var_y,
             grid_size=grid_size,
             bw=bw,
-            color="C0",
-        )
-        plot_density_contour(
-            beam_b,
-            var_x,
-            var_y,
+            label_a=use_label_a,
+            label_b=use_label_b,
             fig=fig,
-            ax=ax,
-            grid_size=grid_size,
-            bw=bw,
-            color="C1",
+            axes=plot_axes,
         )
-
-        # Set labels
-        ax.set_xlabel(var_x)
-        ax.set_ylabel(var_y)
 
         # Add a title to each subplot
-        ax.set_title(f"{var_x} vs {var_y}")
-
-        # Add legend to the first plot only
-        if i == 0 and (label_a or label_b):
-            ax.plot([], [], c="C0", label=label_a)
-            ax.plot([], [], c="C1", label=label_b)
-            ax.legend()
-
-        # Store the axes in the dictionary
-        all_axes[f"{var_x}_{var_y}"] = ax
+        ax_joint.set_title(f"{var_x} vs {var_y}")
 
     # Adjust layout
     fig.tight_layout()
