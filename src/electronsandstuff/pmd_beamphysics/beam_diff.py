@@ -1,4 +1,6 @@
 from pmd_beamphysics import ParticleGroup
+from pmd_beamphysics.units import plottable_array
+from pmd_beamphysics.labels import mathlabel
 import matplotlib.pyplot as plt
 import numpy as np
 from KDEpy import FFTKDE
@@ -238,6 +240,10 @@ def joint_and_marginal_diff(
     # Calculate density difference (beam_a - beam_b)
     diff_density = densities[0] - densities[1]
 
+    # Scale the difference
+    x_grid_common, f1, p1, _, _ = plottable_array(x_grid_common, nice=True)
+    y_grid_common, f2, p2, _, _ = plottable_array(y_grid_common, nice=True)
+
     # Plot density difference using pcolormesh
     x_grid_mesh, y_grid_mesh = np.meshgrid(x_grid_common, y_grid_common)
     vmax = max(abs(np.min(diff_density)), abs(np.max(diff_density)))
@@ -266,6 +272,8 @@ def joint_and_marginal_diff(
         grid_size=grid_size,
         bw=bw,
         color="C0",
+        scale_x=1 / f1,
+        scale_y=1 / f2,
     )
     plot_density_contour(
         beam_b,
@@ -276,23 +284,29 @@ def joint_and_marginal_diff(
         grid_size=grid_size,
         bw=bw,
         color="C1",
+        scale_x=1 / f1,
+        scale_y=1 / f2,
     )
 
     # Plot marginals
-    plot_marginal([beam_a, beam_b], var_x, fig=fig, ax=ax_marg_x)
+    plot_marginal([beam_a, beam_b], var_x, fig=fig, ax=ax_marg_x, scale=1 / f1)
     ax_marg_x.set_xlabel("")
     ax_marg_x.set_ylabel("")
     ax_marg_x.tick_params("y", which="both", left=False, right=False, labelleft=False)
 
     # For y-marginal, we need to rotate the plot
-    plot_marginal([beam_a, beam_b], var_y, fig=fig, ax=ax_marg_y, flip=True)
+    plot_marginal(
+        [beam_a, beam_b], var_y, fig=fig, ax=ax_marg_y, flip=True, scale=1 / f2
+    )
     ax_marg_x.tick_params("y", which="both", bottom=False, top=False, labelbottom=False)
     ax_marg_y.set_xlabel("")
     ax_marg_y.set_ylabel("")
 
     # Set main plot labels
-    ax_joint.set_xlabel(var_x)
-    ax_joint.set_ylabel(var_y)
+    u1 = beam_a.units(var_x).unitSymbol
+    u2 = beam_a.units(var_y).unitSymbol
+    ax_joint.set_xlabel(mathlabel(var_x, units=p1 + u1))
+    ax_joint.set_ylabel(mathlabel(var_y, units=p2 + u2))
 
     # Deal with legend
     if label_a or label_b:
@@ -312,6 +326,8 @@ def plot_density_contour(
     grid_size=100,
     bw="scott",
     color=None,
+    scale_x=1.0,
+    scale_y=1.0,
 ):
     """
     Plot 2D density contours of two variables from a beam object using KDE.
@@ -337,6 +353,10 @@ def plot_density_contour(
         If another string, will pass to KDEpy (but note these are optimized for 1D data).
     color : str, tuple, or None, optional
         Color for the contour lines. If None, uses the next color from the current color cycle.
+    scale_x : float
+        Scaling factor for x variable
+    scale_y : float
+        Scaling factor for y variable
 
     Returns
     -------
@@ -362,7 +382,9 @@ def plot_density_contour(
         color = line.get_color()
         line.remove()
 
-    ax.contour(x, y, z, levels=10, colors=color, linewidths=1, alpha=0.8)
+    ax.contour(
+        x * scale_x, y * scale_y, z, levels=10, colors=color, linewidths=1, alpha=0.8
+    )
 
     # Set labels
     ax.set_xlabel(var_x)
@@ -481,8 +503,9 @@ def plot_marginal(
     fig=None,
     ax=None,
     bins=50,
-    alpha=0.7,
+    alpha=0.5,
     flip=False,
+    scale=1.0,
 ):
     """
     Plot histograms of a variable from multiple beam objects.
@@ -503,6 +526,8 @@ def plot_marginal(
         Transparency of the histograms. Default is 0.7.
     flip : bool, optional
         Flips x and y axes
+    scale : float
+        Scaling factor for the variable before plotting.
 
     Returns
     -------
@@ -544,24 +569,16 @@ def plot_marginal(
         # Plot filled histogram with alpha (let matplotlib assign default color)
         if flip:
             # For flipped axes, swap x and y in the plotting
-            fill_obj = ax.fill_betweenx(bin_centers, hist, step="mid", alpha=alpha)
+            fill_obj = ax.fill_betweenx(
+                scale * bin_centers, hist, step="mid", alpha=alpha
+            )
             fill_between_objects.append(fill_obj)
-
-            # Get the color that was assigned to the fill_between object
-            fill_color = fill_obj.get_facecolor()[0]  # Get the first face color
-
-            # Plot solid line on top with the same color
-            ax.step(hist, bin_centers, where="mid", color=fill_color, linewidth=1.5)
         else:
             # Normal orientation
-            fill_obj = ax.fill_between(bin_centers, hist, step="mid", alpha=alpha)
+            fill_obj = ax.fill_between(
+                scale * bin_centers, hist, step="mid", alpha=alpha
+            )
             fill_between_objects.append(fill_obj)
-
-            # Get the color that was assigned to the fill_between object
-            fill_color = fill_obj.get_facecolor()[0]  # Get the first face color
-
-            # Plot solid line on top with the same color
-            ax.step(bin_centers, hist, where="mid", color=fill_color, linewidth=1.5)
 
     # Set labels
     if flip:
