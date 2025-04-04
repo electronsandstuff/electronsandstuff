@@ -438,7 +438,7 @@ def phase_space_diff(
 
     # Create a top-level gridspec with 3 columns (one for each variable pair)
     # with wider spacing between pairs
-    top_gs = fig.add_gridspec(1, 3, wspace=0.25)
+    top_gs = fig.add_gridspec(1, 3, wspace=0.2)
 
     # Create a dictionary to store all axes
     all_axes = {}
