@@ -12,3 +12,12 @@ repos:
   hooks:
     - id: check-added-large-files
       args: ['--maxkb=2000'] 
+- repo: local
+  hooks:
+    - id: time-restriction
+      name: Time-restricted commits
+      entry: .githooks/restrict-commit-hours.sh
+      language: script
+      pass_filenames: false
+      always_run: true
+      stages: [pre-commit]

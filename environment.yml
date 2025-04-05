@@ -6,6 +6,7 @@ dependencies:
   - matplotlib
   - numpy
   - pandas
+  - pillow
   - pip
   - pre-commit
   - pydantic
