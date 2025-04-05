@@ -73,15 +73,17 @@ class ImageManager:
             idx = len(self)
 
         # Turn into path, save
-        fname = self._get_filename(idx, self.depth, self.extension)
-        img.save(os.path.join(self.dirname, fname))
-        return fname
+        rel_fname = self._get_filename(idx, self.depth, self.extension)
+        fname = os.path.join(self.dirname, rel_fname)
+        os.makedirs(os.path.dirname(fname), exist_ok=True)
+        img.save(fname)
+        return rel_fname
 
     def get_image(self, path: str) -> Image:
         return Image.open(os.path.join(self.dirname, path))
 
     def __len__(self):
-        return n_files(self.dirname)
+        return n_files(self.dirname)[0]
 
     def _get_filename(self, idx: int, depth: int = 3, extension: str = ".png") -> str:
         """
@@ -102,8 +104,6 @@ class ImageManager:
         str
             The filename with appropriate directory structure.
         """
-        name = (f"%0{depth*2}d") % idx
+        name = (f"%0{depth * 2}d") % idx
         name = "/".join(["".join(x) for x in zip(*(iter(name),) * 2)]) + extension
-        if self.dirname:
-            name = self.dirname + "/" + name
         return name
