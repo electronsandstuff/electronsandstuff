@@ -1,6 +1,6 @@
 [project]
 name = "electronsandstuff"
-version = "0.0.8"
+version = "0.0.9"
 authors = [
   { name="Christopher M. Pierce", email="contact@chris-pierce.com" },
 ]
@@ -13,12 +13,14 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-  "pandas",
+  "KDEpy",
+  "matplotlib",
   "numpy",
+  "openpmd-beamphysics",
+  "pandas",
+  "paretobench",
   "pillow",
   "scipy",
-  "matplotlib",
-  "paretobench",
 ]
 
 [project.optional-dependencies]
