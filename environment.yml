@@ -5,6 +5,7 @@ dependencies:
   - jupyter
   - matplotlib
   - numpy
+  - openpmd-beamphysics
   - pandas
   - pip
   - pre-commit
@@ -15,3 +16,4 @@ dependencies:
   - xopt
   - pip:
     - paretobench
+    - KDEpy
