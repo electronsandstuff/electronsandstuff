@@ -7,13 +7,16 @@ import pandas as pd
 
 # Pattern for resolving dates from the filenames
 date_pattern = re.compile(
-    r".*_(\d{4}-\d{2}-\d{2}T\d{2}_\d{2}_\d{2}\.\d+-\d{2}_\d{2})\.csv"
+    r".*_(\d{4}-\d{2}-\d{2}T\d{2}[:_]\d{2}[:_]\d{2}\.\d+-\d{2}[:_]\d{2})\.csv"
 )
 
 
 def extract_datetime(filename: str) -> datetime:
     """
     Load a datetime object from the population files in CNSGA's output path. Raise error on unrecognizeable path.
+    Supports both formats:
+    - With colons: cnsga_offspring_2024-08-30T14:04:59.094665-05:00.csv
+    - With underscores: cnsga_population_2025-04-05T17_15_05.234149-07_00.csv
 
     Parameters
     ----------
@@ -27,14 +30,11 @@ def extract_datetime(filename: str) -> datetime:
     """
     match = date_pattern.match(filename)
     if match:
-        # Extract the datetime string and replace underscores with colons
+        # Extract the datetime string
         dt_str = match.group(1)
-        dt_str = dt_str.replace("_", ":")
 
-        # Handle the timezone format (replace last _ with :)
-        parts = dt_str.rsplit("-", 1)
-        if len(parts) == 2:
-            dt_str = parts[0] + "-" + parts[1].replace("_", ":")
+        # Replace underscores with colons if they exist
+        dt_str = dt_str.replace("_", ":")
 
         # Parse the datetime string
         return datetime.fromisoformat(dt_str)
