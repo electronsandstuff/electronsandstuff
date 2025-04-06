@@ -43,7 +43,7 @@ def extract_datetime(filename: str) -> datetime:
 
 def nsga2_from_cnsga_output_path(output_path: str, **kwargs) -> NSGA2Generator:
     """
-    Create a `NSGA2Generator` from existing populations output from `CNSGAGenerator`. This will import the final population
+    Create an `NSGA2Generator` from existing populations output from `CNSGAGenerator`. This will import the final population
     from the saved data and try to populate all metadata in the new generator object. All other keyword arguments get passed
     on to the `NSGA2Generator` constructor. Be sure to include the required argument `vocs`.
 
