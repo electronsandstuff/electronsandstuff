@@ -44,6 +44,6 @@ class PymooProblemWrapper(PymooProblem):
         # Set the objectives
         out["F"] = pop.f
 
-        # Set the constraints (if any) Note: pymoo uses the opposite definition of feasible as paretobench
+        # Set the constraints (if any)
         if self.prob.n_constraints > 0:
-            out["G"] = -pop.g
+            out["G"] = pop.g
