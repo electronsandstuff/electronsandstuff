@@ -57,7 +57,7 @@ class XoptProblemWrapper:
 
         # The constraints
         constraints = {
-            f"g{i}": ["GREATER_THAN", 0] for i in range(self.prob.n_constraints)
+            f"g{i}": ["LESS_THAN", 0] for i in range(self.prob.n_constraints)
         }
 
         # Construct VOCS object
